@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology Bot Swarm - Multi-Persona Conversations</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        * { 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            background: #fff;
+            color: #111;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            color: white;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 60px;
+        }
+
+        .menu-toggle {
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+            padding: 5px;
+        }
+
+        header strong {
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            flex: 1;
+        }
+
+        header .icon-btn {
+            font-size: 20px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 360px;
+            background: #fff;
+            border-right: 1px solid #e5e5e5;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            height: calc(100vh - 60px);
+            z-index: 900;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            padding: 12px 16px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            gap: 8px;
+        }
+
+        .sidebar-header button {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .sidebar-header button:hover {
+            background: #f0f0f0;
+        }
+
+        .sidebar-header button.active {
+            background: #075e54;
+            color: white;
+            border-color: #075e54;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .sidebar-section {
+            display: none;
+        }
+
+        .sidebar-section.active {
+            display: block;
+        }
+
+        .section-title {
+            padding: 12px 16px 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .group-item, .persona-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .group-item:hover, .persona-item:hover {
+            background: #f0f0f0;
+        }
+
+        .group-item.active {
+            background: #dcf8c6;
+            border-left: 4px solid #075e54;
+        }
+
+        .item-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-preview {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+        }
+
+        .group-item:hover .item-actions,
+        .persona-item:hover .item-actions {
+            opacity: 1;
+        }
+
+        .item-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            color: #666;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .item-actions button:hover {
+            background: #e0e0e0;
+        }
+
+        /* ===== SETTINGS PANEL ===== */
+        .settings-panel {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #075e54;
+            background: #f0fdf7;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        /* ===== MAIN CHAT AREA ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-left: 360px;
+            margin-top: 60px;
+        }
+
+        .chat-header {
+            padding: 12px 20px;
+            background: #f5f5f5;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header-title strong {
+            display: block;
+            font-size: 15px;
+        }
+
+        .chat-header-subtitle {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .chat-window {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fff;
+        }
+
+        .message-group {
+            display: flex;
+            margin-bottom: 8px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-group.user {
+            justify-content: flex-end;
+        }
+
+        .message-group.model {
+            justify-content: flex-start;
+        }
+
+        .message {
+            max-width: 65%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message-group.user .message {
+            background: #dcf8c6;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-group.model .message {
+            background: #ece5dd;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-sender {
+            font-size: 11px;
+            font-weight: 600;
+            color: #075e54;
+            margin-bottom: 4px;
+            padding: 0 14px;
+        }
+
+        .message-group.user .message-sender {
+            text-align: right;
+        }
+
+        .message code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .message pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+
+        .message a {
+            color: #075e54;
+            text-decoration: none;
+        }
+
+        .message a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== MENTOR MESSAGE ===== */
+        .message-group.mentor {
+            justify-content: center;
+        }
+
+        .message-group.mentor .message {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border: 2px solid #ff9800;
+            max-width: 80%;
+            font-style: italic;
+        }
+
+        .coach-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .coach-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* ===== INPUT AREA ===== */
+        .input-area {
+            padding: 12px 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        /* ===== TURN-BASED RESPONDER SELECTOR ===== */
+        .responder-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .responder-selector.show {
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .responder-btn {
+            padding: 6px 12px;
+            background: white;
+            border: 2px solid #075e54;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #075e54;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        
+        .responder-btn:hover {
+            background: #f0fdf7;
+        }
+        
+        .responder-btn.selected {
+            background: #075e54;
+            color: white;
+        }
+        
+        .pass-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+        
+        .pass-btn:hover {
+            opacity: 0.9;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-box {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+        }
+
+        #userInput:focus {
+            outline: none;
+            border-color: #075e54;
+        }
+
+        .send-btn {
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .send-btn:hover {
+            opacity: 0.9;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .quick-actions button {
+            padding: 6px 10px;
+            font-size: 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .quick-actions button:hover {
+            background: #e0e0e0;
+        }
+
+        /* ===== MODALS ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+            }
+
+            .main-content {
+                margin-left: 280px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            header {
+                height: 56px;
+                padding: 8px 12px;
+            }
+
+            header strong {
+                font-size: 1rem;
+            }
+
+            .sidebar {
+                width: 100%;
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+                margin-top: 56px;
+            }
+
+            .message {
+                max-width: 80%;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .message-group.mentor .message {
+                max-width: 85%;
+            }
+
+            .chat-window {
+                padding: 10px;
+                gap: 8px;
+            }
+
+            .chat-header {
+                padding: 10px 12px;
+            }
+
+            .chat-header-title strong {
+                font-size: 14px;
+            }
+
+            .input-area {
+                padding: 10px;
+                gap: 6px;
+            }
+
+            .input-wrapper {
+                gap: 6px;
+            }
+
+            #userInput {
+                padding: 10px 12px;
+                font-size: 14px;
+                border-radius: 18px;
+            }
+
+            .send-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 16px;
+            }
+
+            .responder-selector {
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .responder-btn {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+
+            .pass-btn {
+                padding: 8px 14px;
+                font-size: 12px;
+            }
+
+            .quick-actions button {
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            .btn {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+
+            .sidebar.mobile-shown {
+                transform: translateX(0);
+                position: fixed;
+                top: 56px;
+                left: 0;
+                right: 0;
+                z-index: 850;
+                height: calc(100vh - 56px);
+            }
+
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.3);
+                z-index: 840;
+            }
+
+            .overlay.show {
+                display: block;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                height: 52px;
+                gap: 8px;
+            }
+
+            header strong {
+                font-size: 0.95rem;
+            }
+
+            .main-content {
+                margin-top: 52px;
+            }
+
+            .message {
+                max-width: 85%;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .chat-header-title strong {
+                font-size: 13px;
+            }
+
+            .chat-header-subtitle {
+                font-size: 11px;
+            }
+
+            .input-area {
+                padding: 8px;
+            }
+
+            #userInput {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .send-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 15px;
+            }
+
+            .responder-btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+
+            .pass-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+                flex: 1;
+            }
+
+            .modal-content {
+                width: 95vw;
+                max-height: 85vh;
+            }
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+    <button class="menu-toggle" id="mobileMenuToggle">☰</button>
+    <strong id="headerTitle">Psychology Bot Swarm</strong>
+    <button class="icon-btn" id="settingsIcon" title="Settings">⚙️</button>
+</header>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <button id="groupsBtn" class="active">💬 Groups</button>
+        <button id="personasBtn">🎭 Personas</button>
+        <button id="settingsBtn">📋 Settings</button>
+    </div>
+
+    <div class="sidebar-content">
+        <!-- GROUPS SECTION -->
+        <div id="groupsSection" class="sidebar-section active">
+            <div class="section-title">Active Conversations</div>
+            <div id="groupsList"></div>
+            <div style="padding: 12px 16px;">
+                <button class="btn btn-primary" onclick="openCreateGroupModal()" style="width: 100%;">+ New Group</button>
+            </div>
+        </div>
+
+        <!-- PERSONAS SECTION -->
+        <div id="personasSection" class="sidebar-section">
+            <div class="section-title">Bot Personas</div>
+            <div id="personasList"></div>
+            <div style="padding: 12px 16px;">
+                <button class="btn btn-primary" onclick="openCreatePersonaModal()" style="width: 100%;">+ Create Persona</button>
+            </div>
+        </div>
+
+        <!-- SETTINGS SECTION -->
+        <div id="settingsSection" class="sidebar-section">
+            <div class="settings-panel">
+                <div class="form-group">
+                    <label>🔑 Gemini API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your API key...">
+                    <button class="btn btn-primary" onclick="saveApiKey()">💾 Save Key</button>
+                </div>
+                <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 12px 0;">
+                <div class="form-group">
+                    <button class="btn btn-secondary" onclick="showUserGuide()">📖 User Guide</button>
+                    <button class="btn btn-secondary" onclick="exportData()">📤 Export All Data</button>
+                    <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- OVERLAY FOR MOBILE -->
+<div class="overlay" id="overlay"></div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+    <div class="chat-header" id="chatHeader">
+        <div class="chat-header-info">
+            <div>
+                <strong id="chatTitle">Select a conversation</strong>
+                <div class="chat-header-subtitle" id="chatSubtitle"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-window" id="chatWindow"></div>
+
+    <div class="input-area" id="inputArea" style="display: none;">
+        <div id="responderSelectorContainer" class="responder-selector"></div>
+        <div class="input-wrapper">
+            <div id="quickActionsContainer" class="quick-actions"></div>
+            <div class="input-box">
+                <input type="text" id="userInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter' && !event.shiftKey) sendMessage()">
+                <button class="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALS -->
+<div id="createGroupModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Create New Group</div>
+        <div class="form-group">
+            <label>Group Name</label>
+            <input type="text" id="groupName" placeholder="e.g., Sales Call Prep, Decision Making">
+        </div>
+        <div class="form-group">
+            <label>Add Personas</label>
+            <div id="personasCheckList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px;"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('createGroupModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="createGroup()">Create Group</button>
+        </div>
+    </div>
+</div>
+
+<div id="createPersonaModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">Create New Persona</div>
+        <div class="form-group">
+            <label>Persona Name</label>
+            <input type="text" id="personaName" placeholder="e.g., Optimistic Coach, Skeptic, Sales Manager">
+        </div>
+        <div class="form-group">
+            <label>Avatar Emoji</label>
+            <input type="text" id="personaAvatar" placeholder="😊" maxlength="2">
+        </div>
+        <div class="form-group">
+            <label>System Prompt (How this persona behaves)</label>
+            <textarea id="personaPrompt" rows="4" placeholder="Describe this persona's personality, speaking style, and expertise..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Traits (comma-separated)</label>
+            <input type="text" id="personaTraits" placeholder="e.g., Positive, Analytical, Direct">
+        </div>
+        <div class="form-group">
+            <label>Character Trait Sliders</label>
+            <div id="createTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px;"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('createPersonaModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="createPersona()">Create Persona</button>
+        </div>
+    </div>
+</div>
+
+<div id="mentorModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">🎓 Coach Me</div>
+        <div class="form-group">
+            <label>What would you like coaching on?</label>
+            <textarea id="mentorQuestion" rows="3" placeholder="E.g., How should I respond to this objection? How would [Persona] handle this?"></textarea>
+        </div>
+        <div id="mentorResponse" style="margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 6px; display: none; max-height: 400px; overflow-y: auto;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('mentorModal')">Close</button>
+            <button class="btn btn-primary" onclick="askMentor()">Ask Mentor</button>
+        </div>
+    </div>
+</div>
+
+<div id="editPersonaModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">✏️ Edit Persona</div>
+        <input type="hidden" id="editPersonaId">
+        <div class="form-group">
+            <label>Persona Name</label>
+            <input type="text" id="editPersonaName" placeholder="e.g., Optimistic Coach, Skeptic, Sales Manager">
+        </div>
+        <div class="form-group">
+            <label>Avatar Emoji</label>
+            <input type="text" id="editPersonaAvatar" placeholder="😊" maxlength="2">
+        </div>
+        <div class="form-group">
+            <label>System Prompt (How this persona behaves)</label>
+            <textarea id="editPersonaPrompt" rows="4" placeholder="Describe this persona's personality, speaking style, and expertise..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Traits (comma-separated)</label>
+            <input type="text" id="editPersonaTraits" placeholder="e.g., Positive, Analytical, Direct">
+        </div>
+        <div class="form-group">
+            <label>Character Trait Sliders</label>
+            <div id="editTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px;"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('editPersonaModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="savePersonaEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPTS -->
+<script type="module">
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+    window.GoogleGenerativeAI = GoogleGenerativeAI;
+
+    // ==================== STORAGE UTILITIES ====================
+    const Storage = {
+        getPersonas() {
+            return JSON.parse(localStorage.getItem('psychology_personas') || '[]');
+        },
+        savePersonas(personas) {
+            localStorage.setItem('psychology_personas', JSON.stringify(personas));
+        },
+        getGroups() {
+            return JSON.parse(localStorage.getItem('psychology_groups') || '[]');
+        },
+        saveGroups(groups) {
+            localStorage.setItem('psychology_groups', JSON.stringify(groups));
+        },
+        getGroupMessages(groupId) {
+            return JSON.parse(localStorage.getItem(`psychology_group_${groupId}`) || '[]');
+        },
+        saveGroupMessages(groupId, messages) {
+            localStorage.setItem(`psychology_group_${groupId}`, JSON.stringify(messages));
+        },
+        getApiKey() {
+            const saved = localStorage.getItem('psychology_api_key');
+            if (!saved) return '';
+            try {
+                return atob(saved);
+            } catch {
+                return '';
+            }
+        },
+        saveApiKey(key) {
+            localStorage.setItem('psychology_api_key', btoa(key));
+        },
+        getPersonaHistory(groupId, personaId) {
+            return JSON.parse(localStorage.getItem(`psychology_history_${groupId}_${personaId}`) || '[]');
+        },
+        savePersonaHistory(groupId, personaId, history) {
+            localStorage.setItem(`psychology_history_${groupId}_${personaId}`, JSON.stringify(history));
+        },
+        getTraitDefinitions() {
+            return JSON.parse(localStorage.getItem('psychology_trait_definitions') || JSON.stringify([
+                { id: 'optimism', label: 'Optimism', enabled: true },
+                { id: 'directness', label: 'Directness', enabled: true },
+                { id: 'empathy', label: 'Empathy', enabled: true },
+                { id: 'skepticism', label: 'Skepticism', enabled: true },
+                { id: 'assertiveness', label: 'Assertiveness', enabled: true },
+                { id: 'creativity', label: 'Creativity', enabled: false },
+                { id: 'patience', label: 'Patience', enabled: false },
+                { id: 'humor', label: 'Humor', enabled: false },
+                { id: 'formality', label: 'Formality', enabled: false },
+                { id: 'confidence', label: 'Confidence', enabled: false }
+            ]));
+        },
+        saveTraitDefinitions(traits) {
+            localStorage.setItem('psychology_trait_definitions', JSON.stringify(traits));
+        }
+    };
+
+    // ==================== GLOBAL STATE ====================
+    let currentGroup = null;
+    let personaHistories = {}; // {personaId: [{role, parts}]}
+    let conversationMode = 'mention'; // 'mention' = @mentions, 'turnbased' = one at a time
+    let nextResponderIndex = 0; // Track which persona responds next in turn-based mode
+    let mentorSystemPrompt = `You are an expert communication coach and conversation strategist. Your role is to help people respond effectively in conversations. 
+
+When analyzing a conversation:
+1. Understand the context and objectives
+2. Identify the persona/role of the responder
+3. Provide strategic guidance ("What approach would work best?")
+4. Suggest exact response templates ("Try saying this...")
+5. Customize advice to their specific persona/traits
+
+Keep suggestions practical, actionable, and tied to the conversation context.
+Format responses with clear sections:
+- 🎯 Strategic Overview (what approach to take)
+- 💬 Response Template (exact words to use)
+- ✨ Persona Angle (persona-specific tips)`;
+
+    // ==================== UI INITIALIZATION ====================
+    window.onload = async () => {
+        const savedKey = Storage.getApiKey();
+        if (savedKey) document.getElementById('apiKey').value = savedKey;
+        
+        setupSidebarButtons();
+        updateGroupsList();
+        updatePersonasList();
+        setupMobileMenu();
+    };
+
+    function setupSidebarButtons() {
+        document.getElementById('groupsBtn').onclick = () => switchSidebarSection('groups');
+        document.getElementById('personasBtn').onclick = () => switchSidebarSection('personas');
+        document.getElementById('settingsBtn').onclick = () => switchSidebarSection('settings');
+    }
+
+    function switchSidebarSection(section) {
+        document.querySelectorAll('.sidebar-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.sidebar-header button').forEach(b => b.classList.remove('active'));
+        
+        if (section === 'groups') {
+            document.getElementById('groupsSection').classList.add('active');
+            document.getElementById('groupsBtn').classList.add('active');
+        } else if (section === 'personas') {
+            document.getElementById('personasSection').classList.add('active');
+            document.getElementById('personasBtn').classList.add('active');
+        } else if (section === 'settings') {
+            document.getElementById('settingsSection').classList.add('active');
+            document.getElementById('settingsBtn').classList.add('active');
+        }
+    }
+
+    function setupMobileMenu() {
+        const toggle = document.getElementById('mobileMenuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        
+        toggle.onclick = () => {
+            sidebar.classList.toggle('mobile-shown');
+            overlay.classList.toggle('show');
+        };
+        
+        overlay.onclick = () => {
+            sidebar.classList.remove('mobile-shown');
+            overlay.classList.remove('show');
+        };
+
+        document.querySelectorAll('.group-item, .persona-item').forEach(item => {
+            item.onclick = (e) => {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('mobile-shown');
+                    overlay.classList.remove('show');
+                }
+            };
+        });
+    }
+
+    // ==================== PERSONA MANAGEMENT ====================
+    window.openCreatePersonaModal = () => {
+        // Populate trait sliders in create modal
+        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitContainer = document.getElementById('createTraitSlidersContainer');
+        if (traitContainer) {
+            traitContainer.innerHTML = '';
+            traitDefinitions.forEach(trait => {
+                if (trait.enabled) {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '8px';
+                    div.innerHTML = `
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                            <span>${trait.label}</span>
+                            <span id="create-trait-${trait.id}-display">50</span>
+                        </div>
+                        <input type="range" id="create-trait-${trait.id}" min="0" max="100" value="50" style="width: 100%;" onchange="document.getElementById('create-trait-${trait.id}-display').textContent = this.value">
+                    `;
+                    traitContainer.appendChild(div);
+                }
+            });
+        }
+        
+        document.getElementById('createPersonaModal').classList.add('show');
+    };
+
+    window.createPersona = () => {
+        const name = document.getElementById('personaName').value.trim();
+        const avatar = document.getElementById('personaAvatar').value.trim() || '🤖';
+        const prompt = document.getElementById('personaPrompt').value.trim();
+        const tags = document.getElementById('personaTraits').value.split(',').map(t => t.trim()).filter(t => t);
+
+        if (!name || !prompt) return alert('Please fill in all fields');
+
+        // Create trait values object
+        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitValues = {};
+        traitDefinitions.forEach(trait => {
+            const slider = document.getElementById(`create-trait-${trait.id}`);
+            if (slider) traitValues[trait.id] = parseInt(slider.value);
+        });
+
+        const personas = Storage.getPersonas();
+        const newPersona = {
+            id: 'persona_' + Date.now(),
+            name,
+            avatar,
+            systemPrompt: prompt,
+            tags,
+            traitValues,
+            createdAt: new Date().toISOString()
+        };
+
+        personas.push(newPersona);
+        Storage.savePersonas(personas);
+
+        document.getElementById('personaName').value = '';
+        document.getElementById('personaAvatar').value = '';
+        document.getElementById('personaPrompt').value = '';
+        document.getElementById('personaTraits').value = '';
+
+        closeModal('createPersonaModal');
+        updatePersonasList();
+    };
+
+    window.deletePersona = (personaId) => {
+        if (!confirm('Delete this persona? This will remove it from all groups.')) return;
+        
+        let personas = Storage.getPersonas();
+        personas = personas.filter(p => p.id !== personaId);
+        Storage.savePersonas(personas);
+
+        let groups = Storage.getGroups();
+        groups = groups.map(g => ({
+            ...g,
+            personaIds: g.personaIds.filter(pid => pid !== personaId)
+        }));
+        Storage.saveGroups(groups);
+
+        updatePersonasList();
+        updateGroupsList();
+    };
+
+    function updatePersonasList() {
+        const personas = Storage.getPersonas();
+        const list = document.getElementById('personasList');
+        list.innerHTML = '';
+
+        personas.forEach(persona => {
+            const div = document.createElement('div');
+            div.className = 'persona-item';
+            const preview = persona.tags ? persona.tags.join(', ') : (persona.traits ? persona.traits.join(', ') : 'No tags');
+            div.innerHTML = `
+                <div class="item-avatar">${persona.avatar}</div>
+                <div class="item-content">
+                    <div class="item-name">${persona.name}</div>
+                    <div class="item-preview">${preview}</div>
+                </div>
+                <div class="item-actions">
+                    <button onclick="editPersona('${persona.id}')">✎</button>
+                    <button onclick="deletePersona('${persona.id}')">✕</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+
+        updatePersonasCheckList();
+    }
+
+    function updatePersonasCheckList() {
+        const personas = Storage.getPersonas();
+        const container = document.getElementById('personasCheckList');
+        container.innerHTML = '';
+
+        personas.forEach(persona => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '8px';
+            label.style.padding = '6px 0';
+            label.innerHTML = `
+                <input type="checkbox" value="${persona.id}" class="persona-checkbox">
+                <span>${persona.avatar} ${persona.name}</span>
+            `;
+            container.appendChild(label);
+        });
+    }
+
+    // ==================== GROUP MANAGEMENT ====================
+    window.openCreateGroupModal = () => {
+        updatePersonasCheckList();
+        document.getElementById('createGroupModal').classList.add('show');
+    };
+
+    window.createGroup = () => {
+        const name = document.getElementById('groupName').value.trim();
+        const selectedPersonas = Array.from(document.querySelectorAll('.persona-checkbox:checked')).map(cb => cb.value);
+
+        if (!name || selectedPersonas.length === 0) return alert('Enter group name and select at least one persona');
+
+        const groups = Storage.getGroups();
+        const newGroup = {
+            id: 'group_' + Date.now(),
+            name,
+            personaIds: selectedPersonas,
+            createdAt: new Date().toISOString(),
+            lastMessage: null,
+            lastMessageTime: null
+        };
+
+        groups.push(newGroup);
+        Storage.saveGroups(groups);
+
+        document.getElementById('groupName').value = '';
+        document.querySelectorAll('.persona-checkbox').forEach(cb => cb.checked = false);
+
+        closeModal('createGroupModal');
+        updateGroupsList();
+        selectGroup(newGroup.id);
+    };
+
+    window.deleteGroup = (groupId) => {
+        if (!confirm('Delete this group? All messages will be lost.')) return;
+        
+        let groups = Storage.getGroups();
+        groups = groups.filter(g => g.id !== groupId);
+        Storage.saveGroups(groups);
+
+        localStorage.removeItem(`psychology_group_${groupId}`);
+        Storage.getGroups()[0]?.id && selectGroup(Storage.getGroups()[0].id);
+
+        updateGroupsList();
+        if (currentGroup?.id === groupId) {
+            currentGroup = null;
+            document.getElementById('chatWindow').innerHTML = '';
+            document.getElementById('inputArea').style.display = 'none';
+        }
+    };
+
+    function updateGroupsList() {
+        const groups = Storage.getGroups();
+        const list = document.getElementById('groupsList');
+        list.innerHTML = '';
+
+        groups.forEach(group => {
+            const div = document.createElement('div');
+            div.className = `group-item ${currentGroup?.id === group.id ? 'active' : ''}`;
+            
+            const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+            const avatars = personas.map(p => p.avatar).join('');
+
+            div.innerHTML = `
+                <div class="item-avatar" style="font-size: 12px;">${avatars}</div>
+                <div class="item-content" onclick="selectGroup('${group.id}')">
+                    <div class="item-name">${group.name}</div>
+                    <div class="item-preview">${personas.length} persona${personas.length !== 1 ? 's' : ''}</div>
+                </div>
+                <div class="item-actions">
+                    <button onclick="deleteGroup('${group.id}')">✕</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    window.selectGroup = (groupId) => {
+        const groups = Storage.getGroups();
+        currentGroup = groups.find(g => g.id === groupId);
+
+        updateGroupsList();
+        loadGroupChat(groupId);
+        document.getElementById('inputArea').style.display = 'block';
+    };
+
+    function loadGroupChat(groupId) {
+        const messages = Storage.getGroupMessages(groupId);
+        const chatWindow = document.getElementById('chatWindow');
+        chatWindow.innerHTML = '';
+
+        const group = Storage.getGroups().find(g => g.id === groupId);
+        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+
+        document.getElementById('chatTitle').textContent = group.name;
+        document.getElementById('chatSubtitle').textContent = `${personas.map(p => p.avatar + ' ' + p.name).join(' • ')}`;
+
+        messages.forEach(msg => {
+            displayMessage(msg);
+        });
+
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        // Initialize responder selector
+        updateResponderSelector(groupId);
+        nextResponderIndex = 0;
+    }
+    
+    function updateResponderSelector(groupId) {
+        const group = Storage.getGroups().find(g => g.id === groupId);
+        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+        const container = document.getElementById('responderSelectorContainer');
+        
+        if (personas.length <= 1) {
+            container.classList.remove('show');
+            container.innerHTML = '';
+            return;
+        }
+        
+        container.classList.add('show');
+        container.innerHTML = '<span style="margin-right: 8px; font-weight: 600;">Who responds next?</span>';
+        
+        personas.forEach((persona, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'responder-btn';
+            if (idx === nextResponderIndex) btn.classList.add('selected');
+            btn.textContent = `${persona.avatar} ${persona.name}`;
+            btn.onclick = () => {
+                nextResponderIndex = idx;
+                updateResponderSelector(groupId);
+            };
+            container.appendChild(btn);
+        });
+        
+        const passBtn = document.createElement('button');
+        passBtn.className = 'pass-btn';
+        passBtn.textContent = '✋ Pass & Get Response';
+        passBtn.onclick = () => getResponderResponse();
+        container.appendChild(passBtn);
+    }
+    
+    async function getResponderResponse() {
+        if (!currentGroup) return;
+        
+        const group = Storage.getGroups().find(g => g.id === currentGroup.id);
+        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+        const persona = personas[nextResponderIndex];
+        
+        if (!persona) return;
+        
+        // Get the last user message
+        const messages = Storage.getGroupMessages(currentGroup.id);
+        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+        
+        if (!lastUserMsg) {
+            alert('No user message to respond to');
+            return;
+        }
+        
+        const apiKey = Storage.getApiKey();
+        if (!apiKey) return alert('Please set your API key in settings');
+        
+        await getPersonaResponse(persona, lastUserMsg.text, apiKey);
+        
+        // Move to next persona
+        nextResponderIndex = (nextResponderIndex + 1) % personas.length;
+        updateResponderSelector(currentGroup.id);
+    }
+
+    // ==================== CHAT & MESSAGING ====================
+    function displayMessage(msg, isNew = false) {
+        const chatWindow = document.getElementById('chatWindow');
+        const div = document.createElement('div');
+        div.className = `message-group ${msg.role}`;
+
+        const personas = Storage.getPersonas();
+        const senderPersona = msg.senderPersonaId ? personas.find(p => p.id === msg.senderPersonaId) : null;
+
+        if (msg.role === 'model' && senderPersona) {
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            senderDiv.textContent = `${senderPersona.avatar} ${senderPersona.name}`;
+            div.appendChild(senderDiv);
+        }
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message';
+        msgDiv.innerHTML = marked.parse(msg.text);
+
+        // Highlight code
+        msgDiv.querySelectorAll('pre code').forEach(code => {
+            hljs.highlightElement(code);
+        });
+
+        div.appendChild(msgDiv);
+
+        if (msg.role === 'model' && senderPersona && isNew) {
+            const coachBtn = document.createElement('button');
+            coachBtn.className = 'coach-btn';
+            coachBtn.textContent = '💡 Coach Me';
+            coachBtn.onclick = () => getMentorAdvice(msg.text, senderPersona);
+            div.appendChild(coachBtn);
+        }
+
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    window.sendMessage = async () => {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim();
+        if (!text || !currentGroup) return;
+
+        input.value = '';
+
+        // Add user message
+        const userMsg = { role: 'user', text, senderPersonaId: null, timestamp: new Date().toISOString() };
+        const messages = Storage.getGroupMessages(currentGroup.id);
+        messages.push(userMsg);
+        Storage.saveGroupMessages(currentGroup.id, messages);
+        displayMessage(userMsg);
+
+        // Check for @mentions in the text
+        const mentionMatch = text.match(/@(\w+)/g);
+        const allPersonas = Storage.getPersonas().filter(p => currentGroup.personaIds.includes(p.id));
+        
+        if (mentionMatch) {
+            // If message has @mentions, get responses from mentioned personas
+            const mentionedNames = mentionMatch.map(m => m.substring(1).toLowerCase());
+            const targetPersonas = allPersonas.filter(p => mentionedNames.includes(p.name.toLowerCase()));
+            
+            if (targetPersonas.length === 0) {
+                // No matching persona names found
+                const msg = {
+                    role: 'model',
+                    text: '❌ No persona named: ' + mentionMatch.join(', '),
+                    senderPersonaId: null,
+                    timestamp: new Date().toISOString()
+                };
+                messages.push(msg);
+                Storage.saveGroupMessages(currentGroup.id, messages);
+                displayMessage(msg, true);
+                return;
+            }
+            
+            const apiKey = Storage.getApiKey();
+            if (!apiKey) return alert('Please set your API key in settings');
+            
+            for (const persona of targetPersonas) {
+                await getPersonaResponse(persona, text, apiKey);
+            }
+        } else {
+            // No @mentions - prompt user to select responder via Pass button
+            nextResponderIndex = 0;
+            updateResponderSelector(currentGroup.id);
+        }
+
+        updateGroupsList();
+    };
+
+    async function getPersonaResponse(persona, userMessage, apiKey) {
+        try {
+            const history = Storage.getPersonaHistory(currentGroup.id, persona.id);
+            const genAI = new window.GoogleGenerativeAI(apiKey);
+            
+            // Build trait context string if trait values exist
+            let enhancedSystemPrompt = persona.systemPrompt;
+            if (persona.traitValues && Object.keys(persona.traitValues).length > 0) {
+                const traitDefinitions = Storage.getTraitDefinitions();
+                const traitDescriptions = traitDefinitions
+                    .filter(t => persona.traitValues[t.id] !== undefined)
+                    .map(t => `${t.label}: ${persona.traitValues[t.id]}`)
+                    .join(', ');
+                
+                if (traitDescriptions) {
+                    enhancedSystemPrompt += `\n\nPersonality Traits (0=low, 100=high): ${traitDescriptions}\n\nModulate your responses according to these traits. For example, higher Optimism means frame situations more positively, higher Skepticism means question assumptions more, higher Empathy means show more emotional understanding.`;
+                }
+            }
+            
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-flash-latest',
+                systemInstruction: enhancedSystemPrompt
+            });
+
+            const chat = model.startChat({ history });
+            const result = await chat.sendMessage(userMessage);
+            const responseText = result.response.text();
+
+            // Update persona history
+            let updatedHistory = [...history];
+            updatedHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            updatedHistory.push({ role: 'model', parts: [{ text: responseText }] });
+            Storage.savePersonaHistory(currentGroup.id, persona.id, updatedHistory);
+
+            // Add to group messages
+            const modelMsg = {
+                role: 'model',
+                text: responseText,
+                senderPersonaId: persona.id,
+                timestamp: new Date().toISOString()
+            };
+            const messages = Storage.getGroupMessages(currentGroup.id);
+            messages.push(modelMsg);
+            Storage.saveGroupMessages(currentGroup.id, messages);
+
+            displayMessage(modelMsg, true);
+
+            // Update group's last message
+            let groups = Storage.getGroups();
+            groups = groups.map(g => 
+                g.id === currentGroup.id 
+                    ? { ...g, lastMessage: responseText.substring(0, 50) + '...', lastMessageTime: new Date().toISOString() }
+                    : g
+            );
+            Storage.saveGroups(groups);
+            updateGroupsList();
+
+        } catch (e) {
+            const errorMsg = {
+                role: 'model',
+                text: `❌ Error from ${persona.name}: ${e.message}`,
+                senderPersonaId: persona.id,
+                timestamp: new Date().toISOString()
+            };
+            const messages = Storage.getGroupMessages(currentGroup.id);
+            messages.push(errorMsg);
+            Storage.saveGroupMessages(currentGroup.id, messages);
+            displayMessage(errorMsg, true);
+        }
+    }
+
+    // ==================== MENTOR BOT ====================
+    async function getMentorAdvice(responseText, persona) {
+        if (!Storage.getApiKey()) return alert('API key not set');
+        openModal('mentorModal');
+        
+        document.getElementById('mentorQuestion').value = `How can I improve on this response from ${persona.name}?\n\n"${responseText.substring(0, 100)}..."`;
+    }
+
+    window.askMentor = async () => {
+        const question = document.getElementById('mentorQuestion').value.trim();
+        if (!question) return alert('Please ask a question');
+
+        const apiKey = Storage.getApiKey();
+        if (!apiKey) return alert('API key not set');
+
+        const responseDiv = document.getElementById('mentorResponse');
+        responseDiv.style.display = 'block';
+        responseDiv.innerHTML = '🤔 Consulting mentor...';
+
+        try {
+            const genAI = new window.GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-flash-latest',
+                systemInstruction: mentorSystemPrompt
+            });
+
+            const recentMessages = Storage.getGroupMessages(currentGroup.id).slice(-6);
+            const context = `Recent Conversation:\n${recentMessages.map(m => 
+                `${m.senderPersonaId ? '🤖 ' + (Storage.getPersonas().find(p => p.id === m.senderPersonaId)?.name || 'Unknown') : '👤 You'}: ${m.text.substring(0, 80)}...`
+            ).join('\n')}\n\nCoach Question: ${question}`;
+
+            const result = await model.generateContent(context);
+            const advice = result.response.text();
+
+            responseDiv.innerHTML = marked.parse(advice);
+            responseDiv.querySelectorAll('pre code').forEach(code => hljs.highlightElement(code));
+
+        } catch (e) {
+            responseDiv.innerHTML = `<span style="color:red">❌ Error: ${e.message}</span>`;
+        }
+    };
+
+    // ==================== SETTINGS & UTILITIES ====================
+    window.saveApiKey = () => {
+        const key = document.getElementById('apiKey').value.trim();
+        if (!key) return alert('Please enter an API key');
+        Storage.saveApiKey(key);
+        alert('✅ API key saved and encrypted');
+    };
+
+    window.showUserGuide = () => {
+        switchSidebarSection('settings');
+        alert(`📖 PSYCHOLOGY BOT SWARM - USER GUIDE
+
+🔑 HOW TO GET YOUR GEMINI API KEY
+1. Go to: https://aistudio.google.com/app/api-keys
+2. Click the blue "Get API key" button
+3. Select "Create API key in new project"
+4. Name your project (e.g., "Psychology Bot Swarm")
+5. Select "Gemini API" from the dropdown
+6. Click "Create Key"
+7. Copy the generated API key
+8. Paste it in the "Gemini API Key" field in Settings
+9. Click "Save Key" to encrypt and store locally
+
+⚠️ SECURITY NOTE: Never share your API key. It's encrypted and stored locally on your device only.
+
+🎯 GETTING STARTED
+1. Set your Gemini API key in Settings (see above)
+2. Create bot personas with distinct personalities
+3. Form groups by combining personas
+4. Chat with multiple personas simultaneously
+
+🎭 PERSONAS
+- Each persona has unique system prompt and traits
+- Customize how they think, respond, and communicate
+- Edit or delete personas anytime
+- Click ✎ to edit, ✕ to delete
+
+💬 GROUPS
+- Combine multiple personas in one conversation
+- All personas respond to your messages
+- Messages persist and personas remember context
+- Organize your conversations by topic or scenario
+
+🎓 MENTOR BOT
+- Click "💡 Coach Me" button after any bot response
+- Or open Mentor modal and ask coaching questions
+- Get strategic guidance + response templates
+- Persona-aware coaching tailored to the bot
+
+💾 DATA & PRIVACY
+- All data (personas, groups, messages) stored locally
+- API key is Base64 encrypted for security
+- Export your data anytime as JSON backup
+- Clear all data with one click (Settings → Clear All Data)
+
+🚀 ADVANCED TIPS
+- Use personas for different perspectives in meetings
+- Mentor helps improve communication skills
+- Create groups for: sales scenarios, interviews, decisions
+- Edit persona prompts to fine-tune behavior
+- Export conversations for record-keeping
+`);
+    };
+
+    window.exportData = () => {
+        const data = {
+            personas: Storage.getPersonas(),
+            groups: Storage.getGroups(),
+            exportDate: new Date().toISOString()
+        };
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `psychology-bots-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Data exported');
+    };
+
+    window.clearAllData = () => {
+        if (!confirm('🗑️ Delete ALL data? This cannot be undone!')) return;
+        localStorage.clear();
+        alert('✅ All data cleared. Refresh the page.');
+        location.reload();
+    };
+
+    // ==================== MODAL UTILITIES ====================
+    window.openModal = (id) => {
+        document.getElementById(id).classList.add('show');
+    };
+
+    window.closeModal = (id) => {
+        document.getElementById(id).classList.remove('show');
+    };
+
+    window.onclick = (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('show');
+        }
+    };
+
+    // ==================== PERSONA EDITING ====================
+    window.editPersona = (personaId) => {
+        const personas = Storage.getPersonas();
+        const persona = personas.find(p => p.id === personaId);
+        
+        if (!persona) return alert('Persona not found');
+        
+        // Populate modal with current persona data
+        document.getElementById('editPersonaId').value = personaId;
+        document.getElementById('editPersonaName').value = persona.name;
+        document.getElementById('editPersonaAvatar').value = persona.avatar;
+        document.getElementById('editPersonaPrompt').value = persona.systemPrompt;
+        document.getElementById('editPersonaTraits').value = persona.tags ? persona.tags.join(', ') : (persona.traits ? persona.traits.join(', ') : '');
+        
+        // Populate trait sliders
+        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitContainer = document.getElementById('editTraitSlidersContainer');
+        if (traitContainer) {
+            traitContainer.innerHTML = '';
+            traitDefinitions.forEach(trait => {
+                if (trait.enabled) {
+                    const value = persona.traitValues && persona.traitValues[trait.id] !== undefined ? persona.traitValues[trait.id] : 50;
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '8px';
+                    div.innerHTML = `
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                            <span>${trait.label}</span>
+                            <span id="edit-trait-${trait.id}-display">${value}</span>
+                        </div>
+                        <input type="range" id="edit-trait-${trait.id}" min="0" max="100" value="${value}" style="width: 100%;" onchange="document.getElementById('edit-trait-${trait.id}-display').textContent = this.value">
+                    `;
+                    traitContainer.appendChild(div);
+                }
+            });
+        }
+        
+        // Open modal
+        openModal('editPersonaModal');
+    };
+
+    window.savePersonaEdit = () => {
+        const personaId = document.getElementById('editPersonaId').value;
+        const name = document.getElementById('editPersonaName').value.trim();
+        const avatar = document.getElementById('editPersonaAvatar').value.trim() || '🤖';
+        const prompt = document.getElementById('editPersonaPrompt').value.trim();
+        const traits = document.getElementById('editPersonaTraits').value.split(',').map(t => t.trim()).filter(t => t);
+        
+        // Capture trait slider values
+        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitValues = {};
+        traitDefinitions.forEach(trait => {
+            const slider = document.getElementById(`edit-trait-${trait.id}`);
+            if (slider) {
+                traitValues[trait.id] = parseInt(slider.value);
+            }
+        });
+        
+        if (!name || !prompt) return alert('Please fill in all required fields');
+        
+        let personas = Storage.getPersonas();
+        personas = personas.map(p => 
+            p.id === personaId 
+                ? { ...p, name, avatar, systemPrompt: prompt, tags: traits, traitValues }
+                : p
+        );
+        
+        Storage.savePersonas(personas);
+        closeModal('editPersonaModal');
+        updatePersonasList();
+        
+        // If there's an active group, reload its chat to reflect persona name changes
+        if (currentGroup) {
+            loadGroupChat(currentGroup.id);
+        }
+        
+        alert('✅ Persona updated successfully');
+    };
+</script>
+
+</body>
+</html>
