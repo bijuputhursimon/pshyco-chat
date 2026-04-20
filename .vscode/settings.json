@@ -4,6 +4,8 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "git tag": true
+        "git tag": true,
+        "git add": true,
+        "git commit": true
     }
 }
