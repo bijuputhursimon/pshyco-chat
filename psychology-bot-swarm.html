@@ -615,6 +615,59 @@
             margin-top: 20px;
         }
 
+        /* ===== TRAIT MANAGEMENT ===== */
+        .trait-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .trait-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .trait-item input[type="text"] {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .trait-item input[type="text"]:focus {
+            outline: none;
+            border-color: #075e54;
+            background: #f0fdf7;
+        }
+
+        .trait-item-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .trait-delete-btn {
+            padding: 4px 8px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: 0.2s;
+        }
+
+        .trait-delete-btn:hover {
+            opacity: 0.8;
+        }
+
         /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .sidebar {
@@ -876,6 +929,11 @@
                 </div>
                 <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 12px 0;">
                 <div class="form-group">
+                    <label>🎨 Character Traits</label>
+                    <button class="btn btn-secondary" onclick="openTraitManagementModal()" style="width: 100%;">⚙️ Manage Traits</button>
+                </div>
+                <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 12px 0;">
+                <div class="form-group">
                     <button class="btn btn-secondary" onclick="showUserGuide()">📖 User Guide</button>
                     <button class="btn btn-secondary" onclick="exportData()">📤 Export All Data</button>
                     <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
@@ -973,6 +1031,30 @@
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeModal('mentorModal')">Close</button>
             <button class="btn btn-primary" onclick="askMentor()">Ask Mentor</button>
+        </div>
+    </div>
+</div>
+
+<div id="traitManagementModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">⚙️ Manage Character Traits</div>
+        <div class="form-group">
+            <label>Active Traits</label>
+            <div id="traitsList" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px;"></div>
+        </div>
+        <div class="form-group">
+            <label>Add New Trait</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="newTraitName" placeholder="e.g., Humor, Creativity" style="flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                <button class="btn btn-primary" onclick="addNewTrait()" style="white-space: nowrap;">+ Add</button>
+            </div>
+        </div>
+        <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; font-size: 12px; color: #666; margin-bottom: 12px;">
+            💡 Tip: Customize your trait names by editing them above. Only enabled traits appear in persona creation.
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('traitManagementModal')">Done</button>
+            <button class="btn btn-primary" onclick="saveTraitChanges()">💾 Save Traits</button>
         </div>
     </div>
 </div>
@@ -1655,6 +1737,111 @@ Format responses with clear sections:
         if (!key) return alert('Please enter an API key');
         Storage.saveApiKey(key);
         alert('✅ API key saved and encrypted');
+    };
+
+    window.openTraitManagementModal = () => {
+        renderTraitsList();
+        openModal('traitManagementModal');
+    };
+
+    function renderTraitsList() {
+        const traits = Storage.getTraitDefinitions();
+        const listContainer = document.getElementById('traitsList');
+        listContainer.innerHTML = '';
+
+        traits.forEach((trait, index) => {
+            const div = document.createElement('div');
+            div.className = 'trait-item';
+            div.innerHTML = `
+                <input type="checkbox" ${trait.enabled ? 'checked' : ''} onchange="toggleTraitEnabled(${index})">
+                <input type="text" id="trait-name-${index}" value="${trait.label}" placeholder="Trait name" onchange="updateTraitName(${index})">
+                <div class="trait-item-actions">
+                    <button class="trait-delete-btn" onclick="deleteTrait(${index})">Delete</button>
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+    }
+
+    window.toggleTraitEnabled = (index) => {
+        const traits = Storage.getTraitDefinitions();
+        if (traits[index]) {
+            traits[index].enabled = !traits[index].enabled;
+            renderTraitsList();
+        }
+    };
+
+    window.updateTraitName = (index) => {
+        const newName = document.getElementById(`trait-name-${index}`)?.value.trim();
+        const traits = Storage.getTraitDefinitions();
+        if (traits[index] && newName) {
+            traits[index].label = newName;
+        }
+    };
+
+    window.deleteTrait = (index) => {
+        if (!confirm('Delete this trait? Persona trait values for this will be lost.')) return;
+        const traits = Storage.getTraitDefinitions();
+        traits.splice(index, 1);
+        
+        // Update all personas to remove this trait from their traitValues
+        const personas = Storage.getPersonas();
+        personas.forEach(persona => {
+            if (persona.traitValues) {
+                delete persona.traitValues[traits[index]?.id];
+            }
+        });
+        Storage.savePersonas(personas);
+        
+        renderTraitsList();
+    };
+
+    window.addNewTrait = () => {
+        const nameInput = document.getElementById('newTraitName');
+        const name = nameInput.value.trim();
+        
+        if (!name) return alert('Please enter a trait name');
+        
+        const traits = Storage.getTraitDefinitions();
+        
+        // Generate ID from name (lowercase, spaces to underscores)
+        const id = name.toLowerCase().replace(/\s+/g, '_');
+        
+        // Check for duplicates
+        if (traits.some(t => t.id === id)) {
+            return alert('A trait with this name already exists');
+        }
+        
+        traits.push({
+            id: id,
+            label: name,
+            enabled: true
+        });
+        
+        Storage.saveTraitDefinitions(traits);
+        nameInput.value = '';
+        renderTraitsList();
+        alert(`✅ Trait "${name}" added and enabled!`);
+    };
+
+    window.saveTraitChanges = () => {
+        const traits = Storage.getTraitDefinitions();
+        
+        // Update all trait names from input fields
+        traits.forEach((trait, index) => {
+            const input = document.getElementById(`trait-name-${index}`);
+            if (input) {
+                trait.label = input.value.trim() || trait.label;
+            }
+        });
+        
+        Storage.saveTraitDefinitions(traits);
+        
+        // Refresh all modals that use trait sliders
+        updateResponderSelector(currentGroup?.id);
+        
+        closeModal('traitManagementModal');
+        alert('✅ Traits updated! Changes will apply to all personas.');
     };
 
     window.showUserGuide = () => {

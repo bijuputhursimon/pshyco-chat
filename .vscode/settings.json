@@ -3,6 +3,7 @@
         "/^node -c 'c:\\\\work\\\\biju\\\\ai\\\\pshyco-chat\\\\psychology-bot-swarm\\.html' 2>&1 \\| head -20$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "git tag": true
     }
 }
