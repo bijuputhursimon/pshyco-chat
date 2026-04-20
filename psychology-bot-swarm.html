@@ -457,55 +457,114 @@
         
         /* ===== TURN-BASED RESPONDER SELECTOR ===== */
         .responder-selector {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+            display: none;
+            gap: 4px;
             align-items: center;
-            font-size: 12px;
+            font-size: 11px;
             color: #666;
+            padding: 4px 0;
         }
         
         .responder-selector.show {
-            padding: 8px 0;
-            border-bottom: 1px solid #ddd;
+            display: flex;
         }
         
-        .responder-btn {
-            padding: 6px 12px;
-            background: white;
-            border: 2px solid #075e54;
-            border-radius: 16px;
-            cursor: pointer;
-            font-size: 12px;
+        .responder-label {
             font-weight: 600;
-            color: #075e54;
-            transition: 0.2s;
+            margin-right: 2px;
             white-space: nowrap;
         }
         
-        .responder-btn:hover {
-            background: #f0fdf7;
+        .responder-current {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: white;
+            border: 1px solid #075e54;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 11px;
+            color: #075e54;
+            flex: 1;
+            min-width: 0;
         }
         
-        .responder-btn.selected {
-            background: #075e54;
-            color: white;
-        }
-        
-        .pass-btn {
-            padding: 8px 16px;
+        .responder-avatar-small {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
             background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
             color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
         }
         
-        .pass-btn:hover {
+        .responder-name-small {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            font-size: 10px;
+        }
+        
+        .responder-nav {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .responder-nav-btn {
+            padding: 3px 6px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+            transition: 0.2s;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .responder-nav-btn:hover {
+            background: #075e54;
+            color: white;
+            border-color: #075e54;
+        }
+        
+        .pass-icon-btn {
+            padding: 4px 8px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: 0.2s;
+            min-width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .pass-icon-btn:hover {
             opacity: 0.9;
+        }
+        
+        .pass-icon-btn:active {
+            transform: scale(0.95);
         }
 
         .input-wrapper {
@@ -972,28 +1031,52 @@
             }
 
             .responder-selector {
-                gap: 4px;
-                font-size: 11px;
-                padding: 6px 0;
+                gap: 2px;
+                font-size: 10px;
+                padding: 2px 0;
+                flex-wrap: nowrap;
             }
 
             .responder-selector.show {
-                padding: 6px 0;
-                border-bottom: 1px solid #ddd;
+                display: flex !important;
+                padding: 2px 0;
+                border: none;
             }
 
-            .responder-btn {
-                padding: 6px 10px;
-                font-size: 11px;
-                min-height: 32px;
-                flex: 0 1 auto;
+            .responder-current {
+                padding: 2px 6px;
+                font-size: 10px;
+                flex: 1;
+                min-width: 0;
             }
 
-            .pass-btn {
-                padding: 8px 12px;
-                font-size: 12px;
-                min-height: 40px;
-                width: 100%;
+            .responder-avatar-small {
+                width: 18px;
+                height: 18px;
+                font-size: 9px;
+            }
+
+            .responder-name-small {
+                font-size: 9px;
+            }
+
+            .responder-nav {
+                gap: 1px;
+            }
+
+            .responder-nav-btn {
+                padding: 2px 4px;
+                font-size: 9px;
+                min-width: 20px;
+                height: 20px;
+            }
+
+            .pass-icon-btn {
+                width: 40px;
+                height: 40px;
+                padding: 4px 6px;
+                font-size: 14px;
+                flex-shrink: 0;
             }
 
             .quick-actions {
@@ -1181,12 +1264,13 @@
     <div class="chat-window" id="chatWindow"></div>
 
     <div class="input-area" id="inputArea" style="display: none;">
-        <div id="responderSelectorContainer" class="responder-selector"></div>
         <div class="input-wrapper">
+            <div id="responderSelectorContainer" class="responder-selector"></div>
             <div id="quickActionsContainer" class="quick-actions"></div>
             <div class="input-box">
                 <input type="text" id="userInput" placeholder="Type your message..." onkeypress="if(event.key==='Enter' && !event.shiftKey) sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">➤</button>
+                <button class="pass-icon-btn" id="passBtn" title="Get response from selected persona" style="display: none;" onclick="getResponderResponse()">✋</button>
             </div>
         </div>
     </div>
@@ -1691,33 +1775,64 @@ Format responses with clear sections:
         const group = Storage.getGroups().find(g => g.id === groupId);
         const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
         const container = document.getElementById('responderSelectorContainer');
+        const passBtn = document.getElementById('passBtn');
         
         if (personas.length <= 1) {
             container.classList.remove('show');
             container.innerHTML = '';
+            if (passBtn) passBtn.style.display = 'none';
             return;
         }
         
         container.classList.add('show');
-        container.innerHTML = '<span style="margin-right: 8px; font-weight: 600;">Who responds next?</span>';
+        container.innerHTML = '';
         
-        personas.forEach((persona, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'responder-btn';
-            if (idx === nextResponderIndex) btn.classList.add('selected');
-            btn.textContent = `${persona.avatar} ${persona.name}`;
-            btn.onclick = () => {
-                nextResponderIndex = idx;
-                updateResponderSelector(groupId);
-            };
-            container.appendChild(btn);
-        });
+        // Current persona display
+        const currentPersona = personas[nextResponderIndex];
+        const selectorDiv = document.createElement('div');
+        selectorDiv.className = 'responder-current';
         
-        const passBtn = document.createElement('button');
-        passBtn.className = 'pass-btn';
-        passBtn.textContent = '✋ Pass & Get Response';
-        passBtn.onclick = () => getResponderResponse();
-        container.appendChild(passBtn);
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'responder-avatar-small';
+        avatarDiv.textContent = currentPersona.avatar;
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'responder-name-small';
+        nameDiv.textContent = currentPersona.name;
+        
+        selectorDiv.appendChild(avatarDiv);
+        selectorDiv.appendChild(nameDiv);
+        
+        // Navigation buttons
+        const navDiv = document.createElement('div');
+        navDiv.className = 'responder-nav';
+        
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'responder-nav-btn';
+        prevBtn.textContent = '‹';
+        prevBtn.title = 'Previous persona';
+        prevBtn.onclick = () => {
+            nextResponderIndex = (nextResponderIndex - 1 + personas.length) % personas.length;
+            updateResponderSelector(groupId);
+        };
+        
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'responder-nav-btn';
+        nextBtn.textContent = '›';
+        nextBtn.title = 'Next persona';
+        nextBtn.onclick = () => {
+            nextResponderIndex = (nextResponderIndex + 1) % personas.length;
+            updateResponderSelector(groupId);
+        };
+        
+        navDiv.appendChild(prevBtn);
+        navDiv.appendChild(nextBtn);
+        
+        container.appendChild(selectorDiv);
+        container.appendChild(navDiv);
+        
+        // Show Pass button in input area
+        if (passBtn) passBtn.style.display = 'flex';
     }
     
     async function getResponderResponse() {
