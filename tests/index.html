@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology Bot Swarm - Test Runner</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+            max-width: 1200px;
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #075e54;
+            padding-bottom: 10px;
+        }
+        
+        .test-suite {
+            margin: 20px 0;
+            padding: 15px;
+            background: #252526;
+            border-left: 4px solid #075e54;
+            border-radius: 4px;
+        }
+        
+        .test-suite h3 {
+            margin-top: 0;
+            color: #4ec9b0;
+        }
+        
+        .test-name {
+            margin: 8px 0;
+            padding: 8px;
+            background: #1e1e1e;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        .test-pass {
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+        
+        .test-fail {
+            color: #f48771;
+            font-weight: bold;
+        }
+        
+        .summary {
+            padding: 20px;
+            margin-top: 30px;
+            background: #252526;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .summary.all-pass {
+            border-left: 4px solid #4ec9b0;
+            color: #4ec9b0;
+        }
+        
+        .summary.has-fail {
+            border-left: 4px solid #f48771;
+            color: #f48771;
+        }
+        
+        .error-message {
+            color: #f48771;
+            margin-left: 20px;
+            padding: 8px;
+            background: rgba(244, 135, 113, 0.1);
+            border-left: 2px solid #f48771;
+            margin-top: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #048a81;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+        }
+        
+        #results {
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🧪 Psychology Bot Swarm - Test Suite (Phase 1)</h1>
+
+<div class="controls">
+    <button onclick="location.reload()">🔄 Reload</button>
+    <button onclick="copyResults()">📋 Copy Results</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+    function copyResults() {
+        const text = document.getElementById('results').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('✓ Results copied to clipboard');
+        });
+    }
+</script>
+
+<!-- Load test framework -->
+<script src="framework.js"></script>
+
+<!-- Load modules to test -->
+<script src="../modules/storage.js"></script>
+
+<!-- Load test files -->
+<script src="storage.test.js"></script>
+
+<script>
+    // Run tests on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        window.TestFramework.runAllTests();
+    });
+</script>
+
+</body>
+</html>
