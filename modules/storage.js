@@ -28,16 +28,16 @@ window.psychologyBot.StorageModule = (function() {
     };
     
     const DEFAULT_TRAITS = [
-        { id: 'optimism', label: 'Optimism', enabled: true },
-        { id: 'directness', label: 'Directness', enabled: true },
-        { id: 'empathy', label: 'Empathy', enabled: true },
-        { id: 'skepticism', label: 'Skepticism', enabled: true },
-        { id: 'assertiveness', label: 'Assertiveness', enabled: true },
-        { id: 'creativity', label: 'Creativity', enabled: false },
-        { id: 'patience', label: 'Patience', enabled: false },
-        { id: 'humor', label: 'Humor', enabled: false },
-        { id: 'formality', label: 'Formality', enabled: false },
-        { id: 'confidence', label: 'Confidence', enabled: false }
+        { id: 'optimism', label: 'Optimism', enabled: true, min: 0, max: 100, default: 50 },
+        { id: 'directness', label: 'Directness', enabled: true, min: 0, max: 100, default: 50 },
+        { id: 'empathy', label: 'Empathy', enabled: true, min: 0, max: 100, default: 50 },
+        { id: 'skepticism', label: 'Skepticism', enabled: true, min: 0, max: 100, default: 50 },
+        { id: 'assertiveness', label: 'Assertiveness', enabled: true, min: 0, max: 100, default: 50 },
+        { id: 'creativity', label: 'Creativity', enabled: false, min: 0, max: 100, default: 50 },
+        { id: 'patience', label: 'Patience', enabled: false, min: 0, max: 100, default: 50 },
+        { id: 'humor', label: 'Humor', enabled: false, min: 0, max: 100, default: 50 },
+        { id: 'formality', label: 'Formality', enabled: false, min: 0, max: 100, default: 50 },
+        { id: 'confidence', label: 'Confidence', enabled: false, min: 0, max: 100, default: 50 }
     ];
     
     // ===== PRIVATE HELPERS =====
@@ -219,6 +219,23 @@ window.psychologyBot.StorageModule = (function() {
             }
             const json = JSON.stringify(traits);
             return setItem(KEYS.TRAIT_DEFINITIONS, json);
+        },
+        
+        /**
+         * Clear group messages
+         */
+        clearGroupMessages(groupId) {
+            if (!groupId) {
+                throw new Error('groupId is required');
+            }
+            const key = `${KEYS.GROUP_MSG_PREFIX}${groupId}`;
+            try {
+                localStorage.removeItem(key);
+                return true;
+            } catch (e) {
+                console.error('Clear messages error:', e);
+                return false;
+            }
         },
         
         /**

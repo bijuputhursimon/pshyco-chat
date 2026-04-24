@@ -15,6 +15,15 @@
     <script src="modules/storage.js"></script>
     <script src="modules/persona-manager.js"></script>
     <script src="modules/group-manager.js"></script>
+    <script src="modules/chat-engine.js"></script>
+    <script src="modules/llm-integration.js"></script>
+    <script src="modules/trait-manager.js"></script>
+
+    <!-- Google Generative AI SDK (for Gemini support) -->
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+        window.GoogleGenerativeAI = GoogleGenerativeAI;
+    </script>
 
     <style>
         * { 
@@ -2099,46 +2108,31 @@ Format responses with clear sections:
 
     async function getPersonaResponse(persona, userMessage, apiKey) {
         try {
-            const history = psychologyBot.StorageModule.getPersonaHistory(currentGroup.id, persona.id);
-            const genAI = new window.GoogleGenerativeAI(apiKey);
-            
-            // Build trait context string if trait values exist
-            let enhancedSystemPrompt = persona.systemPrompt;
-            if (persona.traitValues && Object.keys(persona.traitValues).length > 0) {
-                const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
-                const traitDescriptions = traitDefinitions
-                    .filter(t => persona.traitValues[t.id] !== undefined)
-                    .map(t => `${t.label}: ${persona.traitValues[t.id]}`)
-                    .join(', ');
-                
-                if (traitDescriptions) {
-                    enhancedSystemPrompt += `\n\nPersonality Traits (0=low, 100=high): ${traitDescriptions}\n\nModulate your responses according to these traits. For example, higher Optimism means frame situations more positively, higher Skepticism means question assumptions more, higher Empathy means show more emotional understanding.`;
-                }
-            }
-            
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-flash-latest',
-                systemInstruction: enhancedSystemPrompt
-            });
+            // Show loading indicator
+            const chatWindow = document.getElementById('chatWindow');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message-group model';
+            loadingDiv.innerHTML = `<div class="message" style="color: #666;">${persona.avatar} ${persona.name} is thinking...</div>`;
+            chatWindow.appendChild(loadingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
 
-            const chat = model.startChat({ history });
-            const result = await chat.sendMessage(userMessage);
-            const responseText = result.response.text();
+            // Get conversation history for context
+            const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
+            
+            // Use LLMIntegration module to generate response
+            const group = psychologyBot.StorageModule.getGroups().find(g => g.id === currentGroup.id);
+            const result = await psychologyBot.LLMIntegration.generateResponse(persona, group, messages, userMessage);
 
-            // Update persona history
-            let updatedHistory = [...history];
-            updatedHistory.push({ role: 'user', parts: [{ text: userMessage }] });
-            updatedHistory.push({ role: 'model', parts: [{ text: responseText }] });
-            psychologyBot.StorageModule.savePersonaHistory(currentGroup.id, persona.id, updatedHistory);
+            // Remove loading indicator
+            chatWindow.removeChild(loadingDiv);
 
             // Add to group messages
             const modelMsg = {
                 role: 'model',
-                text: responseText,
+                text: result.content,
                 senderPersonaId: persona.id,
                 timestamp: new Date().toISOString()
             };
-            const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
             messages.push(modelMsg);
             psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
 
@@ -2148,13 +2142,24 @@ Format responses with clear sections:
             let groups = psychologyBot.StorageModule.getGroups();
             groups = groups.map(g => 
                 g.id === currentGroup.id 
-                    ? { ...g, lastMessage: responseText.substring(0, 50) + '...', lastMessageTime: new Date().toISOString() }
+                    ? { ...g, lastMessage: result.content.substring(0, 50) + '...', lastMessageTime: new Date().toISOString() }
                     : g
             );
             psychologyBot.StorageModule.saveGroups(groups);
             updateGroupsList();
 
         } catch (e) {
+            // Remove loading indicator if it exists
+            const loadingMsgs = chatWindow.querySelectorAll('.message');
+            for (let msg of loadingMsgs) {
+                if (msg.textContent.includes('is thinking...')) {
+                    if (msg.parentElement) {
+                        chatWindow.removeChild(msg.parentElement);
+                    }
+                    break;
+                }
+            }
+
             const errorMsg = {
                 role: 'model',
                 text: `❌ Error from ${persona.name}: ${e.message}`,
@@ -2188,21 +2193,18 @@ Format responses with clear sections:
         responseDiv.innerHTML = '🤔 Consulting mentor...';
 
         try {
-            const genAI = new window.GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-flash-latest',
-                systemInstruction: mentorSystemPrompt
-            });
-
+            // Get recent conversation context
             const recentMessages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id).slice(-6);
+            const personas = psychologyBot.StorageModule.getPersonas();
+            
             const context = `Recent Conversation:\n${recentMessages.map(m => 
-                `${m.senderPersonaId ? '🤖 ' + (psychologyBot.StorageModule.getPersonas().find(p => p.id === m.senderPersonaId)?.name || 'Unknown') : '👤 You'}: ${m.text.substring(0, 80)}...`
+                `${m.senderPersonaId ? '🤖 ' + (personas.find(p => p.id === m.senderPersonaId)?.name || 'Unknown') : '👤 You'}: ${m.text.substring(0, 80)}...`
             ).join('\n')}\n\nCoach Question: ${question}`;
 
-            const result = await model.generateContent(context);
-            const advice = result.response.text();
-
-            responseDiv.innerHTML = marked.parse(advice);
+            // Use LLMIntegration module for mentor response
+            const result = await psychologyBot.LLMIntegration.sendRequestWithRetry(mentorSystemPrompt, context);
+            
+            responseDiv.innerHTML = marked.parse(result.content);
             responseDiv.querySelectorAll('pre code').forEach(code => hljs.highlightElement(code));
 
         } catch (e) {

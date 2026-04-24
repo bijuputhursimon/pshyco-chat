@@ -23,6 +23,26 @@ window.TestFramework.assert = function(condition, message) {
 };
 
 /**
+ * Assert that a function throws an error
+ */
+window.TestFramework.assertThrows = function(fn, expectedMessage) {
+    let threw = false;
+    
+    try {
+        fn();
+    } catch (e) {
+        threw = true;
+        if (expectedMessage && !e.message.includes(expectedMessage)) {
+            throw new Error(`Expected error containing "${expectedMessage}", got "${e.message}"`);
+        }
+    }
+    
+    if (!threw) {
+        throw new Error('Expected function to throw an error');
+    }
+};
+
+/**
  * Create a test suite with multiple tests
  */
 window.TestFramework.describe = function(suiteName, testFn) {

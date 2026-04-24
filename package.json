@@ -1,0 +1,31 @@
+{
+  "name": "psychology-bot-swarm",
+  "version": "1.0.0",
+  "description": "Multi-agent AI chat system with customizable personas powered by Google Gemini API",
+  "main": "psychology-bot-swarm.html",
+  "scripts": {
+    "start": "open psychology-bot-swarm.html",
+    "test": "open tests/index.html"
+  },
+  "keywords": [
+    "ai",
+    "chatbot",
+    "multi-agent",
+    "persona",
+    "gemini",
+    "psychology",
+    "conversational-ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": "#",
+  "dependencies": {},
+  "devDependencies": {}
+}
