@@ -244,6 +244,231 @@ If something breaks:
 
 ---
 
+## Testing Methodology
+
+### Test Framework
+
+**Tool:** Simple HTML-based test framework (no Node.js, Jest, or Vitest required)
+
+**Structure:**
+```
+tests/
+├── framework.js           # Test runner logic (assert, describe, displayResults)
+├── index.html             # Test runner UI
+├── storage.test.js        # Phase 1 tests
+├── persona-manager.test.js # Phase 2 tests (future)
+└── [module].test.js       # One test file per module
+```
+
+### Unit Testing Pattern
+
+**How We Write Tests:**
+
+```javascript
+TestFramework.describe('Storage Module: Personas', () => {
+    TestFramework.assert(
+        condition,
+        'Description of what should pass'
+    );
+});
+```
+
+**Example from Phase 1:**
+```javascript
+TestFramework.describe('Save and retrieve personas', () => {
+    const personas = [{ id: 'p1', name: 'Alice', traitValues: {} }];
+    psychologyBot.StorageModule.savePersonas(personas);
+    const retrieved = psychologyBot.StorageModule.getPersonas();
+    
+    TestFramework.assert(
+        retrieved[0].name === 'Alice',
+        'Persona name should match saved value'
+    );
+    TestFramework.assert(
+        retrieved.length === 1,
+        'Should return exactly one persona'
+    );
+});
+```
+
+### Test Coverage Strategy
+
+**For Each Module - Minimum Tests Required:**
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| **Create** | 2-3 | Valid input, validation failure, edge cases |
+| **Read** | 2-3 | Get single, get all, empty state |
+| **Update** | 2-3 | Update fields, partial updates, validation |
+| **Delete** | 1-2 | Delete existing, handle missing |
+| **Validation** | 2-3 | Required fields, invalid types, boundaries |
+| **Integration** | 2-3 | Interacts correctly with StorageModule |
+| **Edge Cases** | 1-2 | null/undefined, empty strings, large data |
+
+**Phase 1 Example:**
+- Storage Module: 15 tests covering 7 categories
+- Personas (3), Groups (2), API Key (3), Messages (2), History (2), Traits (2), Utilities (3)
+- Expected result: ✅ 15/15 passing
+
+### Testing Each Module Type
+
+#### 1. Storage-Based Modules (Personas, Groups, API Keys)
+```javascript
+// Test: Read after write
+save(items);
+const retrieved = get();
+assert(retrieved equals items);
+
+// Test: Persistence
+refresh page;
+const persisted = get();
+assert(persisted equals items);
+
+// Test: Encryption (API Keys only)
+saveApiKey('secret123');
+const fromStorage = localStorage.getItem('...');
+assert(fromStorage !== 'secret123'); // Should be encrypted
+```
+
+#### 2. Manager Modules (PersonaManager, GroupManager)
+```javascript
+// Test: CRUD operations
+create(newItem) → should return with ID
+getById(id) → should return exact item
+update(id, changes) → merge changes
+delete(id) → remove from storage
+
+// Test: Validation
+createWithInvalidData() → should throw error
+updateNonExistent(id) → should throw error
+
+// Test: Storage Integration
+manager.create(item) → StorageModule.save() called
+manager.delete(id) → StorageModule.delete() called
+```
+
+#### 3. UI Component Modules (ResponderSelector, ModalManager, MentorBot)
+```javascript
+// Test: DOM manipulation
+create(element) → should add to DOM
+update(data) → should render new data
+destroy() → should clean up listeners
+
+// Test: Event handling
+click event → should call handler
+input change → should call validator
+
+// Test: State
+setState(newState) → should update
+getState() → should return current state
+```
+
+#### 4. Business Logic Modules (ChatEngine, LLMIntegration)
+```javascript
+// Test: Logic correctness
+processMessage(msg) → should return expected output
+formatPrompt(traits, context) → correct format
+handleResponse(apiResponse) → proper parsing
+
+// Test: Error handling
+apiErrorResponse → should throw/handle gracefully
+malformedInput → should return error
+timeout → should handle appropriately
+```
+
+### Running Tests
+
+**Step 1: Open Test Runner**
+```
+tests/index.html (in browser)
+```
+
+**Step 2: View Results**
+- Green ✅ = Test passed
+- Red ❌ = Test failed
+- Results include: Total tests, passed, failed, per-suite breakdown
+
+**Step 3: Debug Failures**
+```javascript
+// In browser console:
+console.log(psychologyBot.StorageModule); // Check module loaded
+psychologyBot.StorageModule.getPersonas(); // Test manually
+```
+
+### Test Coverage Goals
+
+**Required Coverage by Phase:**
+
+| Phase | Module | Minimum Tests | Target Coverage |
+|-------|--------|---------------|-----------------|
+| 1 | Storage | 15 ✅ | 100% API coverage |
+| 2 | PersonaManager | 12-15 | All CRUD ops |
+| 2 | GroupManager | 10-12 | All CRUD ops |
+| 3 | ChatEngine | 8-10 | Core logic paths |
+| 3 | Traits | 6-8 | Validation, updates |
+| 3 | LLMIntegration | 10-12 | API calls, errors |
+| 4 | UI Components | 6-8 per component | Render, events, state |
+| 5 | Integration | 15-20 | End-to-end workflows |
+
+**Target: 1 test per 20-30 lines of code**
+
+### Mock Testing Pattern
+
+**Use Mock Modules for Testing Downstream Modules:**
+
+```javascript
+// In Phase 2 tests (PersonaManager depends on Storage):
+// Don't use real Storage, use mock to isolate tests
+
+psychologyBot.StorageModule = psychologyBot.MockStorageModule;
+psychologyBot.StorageModule.reset(); // Clean state for each test
+
+// Now test PersonaManager without affecting real localStorage
+psychologyBot.PersonaManager.create({ name: 'Test' });
+// Storage calls go to mock, not real localStorage
+```
+
+**Mock Benefits:**
+✅ Tests run faster (no I/O)  
+✅ Isolated from other modules  
+✅ Predictable test state  
+✅ Can test error scenarios easily  
+
+### Integration Testing
+
+**After Each Phase - Run All Tests Together:**
+
+```javascript
+// tests/index.html loads:
+1. framework.js              // Test runner
+2. modules/storage.js        // Real Storage module
+3. modules/persona-manager.js // New module (Phase 2)
+4. tests/storage.test.js
+5. tests/persona-manager.test.js
+
+Results: All tests together (Storage + PersonaManager = ~27 tests)
+Target: ✅ 100% passing (0 regressions)
+```
+
+### Manual Testing Checklist
+
+**After Automated Tests Pass - Verify in App:**
+
+- [ ] Open app (psychology-bot-swarm.html)
+- [ ] Create new persona
+- [ ] Save personas (localStorage)
+- [ ] Refresh page → personas still there
+- [ ] Create group
+- [ ] Send message → group messages saved
+- [ ] Add trait value → persists
+- [ ] Set API key → works with API calls
+- [ ] Export data → JSON valid
+- [ ] Delete persona → removed from UI
+- [ ] Mobile responsive → layout correct
+- [ ] No console errors → all clean
+
+---
+
 ## Key Files
 
 | File | Purpose | Status |

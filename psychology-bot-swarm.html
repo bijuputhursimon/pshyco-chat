@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Psychology Bot Swarm - Multi-Persona Conversations</title>
@@ -10,6 +11,10 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Load Modules -->
+    <script src="modules/storage.js"></script>
+    <script src="modules/persona-manager.js"></script>
+    <script src="modules/group-manager.js"></script>
 
     <style>
         * { 
@@ -238,6 +243,7 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            margin-bottom: 10px;
         }
 
         .form-group label {
@@ -648,6 +654,7 @@
             justify-content: center;
             align-items: center;
             animation: fadeIn 0.2s;
+            overflow-y: auto;
         }
 
         @keyframes fadeIn {
@@ -1000,27 +1007,34 @@
 
             .input-area {
                 flex-shrink: 0;
-                padding: 6px;
-                gap: 4px;
+                padding: 8px 8px;
+                gap: 6px;
                 border-top: 1px solid #e5e5e5;
+                background: #f5f5f5;
             }
 
             .input-wrapper {
-                gap: 4px;
+                gap: 6px;
+                display: flex;
+                flex-direction: column;
             }
 
             .input-box {
-                gap: 6px;
+                gap: 8px;
+                display: flex;
+                align-items: flex-end;
             }
 
             #userInput {
-                padding: 12px 14px;
-                font-size: 15px;
-                border-radius: 18px;
+                padding: 14px 16px;
+                font-size: 16px;
+                border-radius: 20px;
                 flex: 1;
-                min-height: 50px;
-                max-height: 140px;
-                line-height: 1.4;
+                min-height: 60px;
+                max-height: 160px;
+                line-height: 1.5;
+                border: 2px solid #048a81;
+                background: white;
             }
 
             #userInput::placeholder {
@@ -1028,59 +1042,97 @@
             }
 
             .send-btn {
-                width: 44px;
-                height: 44px;
-                font-size: 18px;
+                width: 48px;
+                height: 48px;
+                font-size: 20px;
                 flex-shrink: 0;
                 align-self: flex-end;
+                background: #075e54;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+
+            .send-btn:active {
+                opacity: 0.8;
+                transform: scale(0.95);
             }
 
             .responder-selector {
-                gap: 2px;
-                font-size: 10px;
-                padding: 2px 0;
-                flex-wrap: nowrap;
+                gap: 6px;
+                font-size: 11px;
+                padding: 6px 0;
+                flex-wrap: wrap;
+                background: white;
+                padding: 8px 10px;
+                border-radius: 12px;
+                border: 1px solid #ddd;
+                align-items: center;
             }
 
             .responder-selector.show {
                 display: flex !important;
-                padding: 2px 0;
-                border: none;
+                padding: 8px 10px;
+                border: 1px solid #075e54;
+                margin-bottom: 2px;
             }
 
             .responder-current {
-                padding: 2px 6px;
-                font-size: 10px;
+                padding: 4px 10px;
+                font-size: 12px;
                 flex: 1;
-                min-width: 0;
+                min-width: 100px;
+                background: #f0fdf7;
+                border: 1px solid #075e54;
+                border-radius: 14px;
+                font-weight: 600;
+                color: #075e54;
             }
 
             .responder-avatar-small {
-                width: 18px;
-                height: 18px;
-                font-size: 9px;
+                width: 22px;
+                height: 22px;
+                font-size: 10px;
             }
 
             .responder-name-small {
-                font-size: 9px;
+                font-size: 11px;
+                font-weight: 600;
             }
 
             .responder-nav {
-                gap: 1px;
+                gap: 4px;
+                display: flex;
             }
 
             .responder-nav-btn {
-                padding: 2px 4px;
-                font-size: 9px;
-                min-width: 20px;
-                height: 20px;
+                padding: 4px 8px;
+                font-size: 11px;
+                min-width: 28px;
+                height: 28px;
+                font-weight: 600;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+
+            .responder-nav-btn:active {
+                background: #075e54;
+                color: white;
+                border-color: #075e54;
             }
 
             .pass-icon-btn {
-                width: 44px;
-                height: 44px;
-                padding: 4px 6px;
-                font-size: 16px;
+                width: 48px;
+                height: 48px;
+                padding: 6px 8px;
+                font-size: 18px;
                 flex-shrink: 0;
                 align-self: flex-end;
             }
@@ -1103,10 +1155,13 @@
 
             .modal-content {
                 width: 100%;
-                max-height: calc(100vh - 48px);
+                max-height: calc(100vh - 96px);
                 max-width: 100%;
                 border-radius: 12px 12px 0 0;
                 margin-top: auto;
+                padding: 16px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
 
             .modal-header {
@@ -1322,7 +1377,7 @@
         </div>
         <div class="form-group">
             <label>Character Trait Sliders</label>
-            <div id="createTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px;"></div>
+            <div id="createTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px; min-height: 80px; border: 1px solid #e5e5e5;"></div>
         </div>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeModal('createPersonaModal')">Cancel</button>
@@ -1392,11 +1447,101 @@
         </div>
         <div class="form-group">
             <label>Character Trait Sliders</label>
-            <div id="editTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px;"></div>
+            <div id="editTraitSlidersContainer" style="background: #f9f9f9; padding: 10px; border-radius: 6px; min-height: 80px; border: 1px solid #e5e5e5;"></div>
         </div>
         <div class="modal-actions">
             <button class="btn btn-secondary" onclick="closeModal('editPersonaModal')">Cancel</button>
             <button class="btn btn-primary" onclick="savePersonaEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<div id="userGuideModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">📖 Psychology Bot Swarm - User Guide</div>
+        <div style="max-height: 70vh; overflow-y: auto; font-size: 13px; line-height: 1.6; color: #333;">
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">🔑 HOW TO GET YOUR GEMINI API KEY</strong>
+                <ol style="margin-top: 8px; padding-left: 20px;">
+                    <li>Go to: <a href="https://aistudio.google.com/app/api-keys" target="_blank" style="color: #075e54; text-decoration: none; font-weight: 600;">https://aistudio.google.com/app/api-keys</a></li>
+                    <li>Click the blue "Get API key" button</li>
+                    <li>Select "Create API key in new project"</li>
+                    <li>Name your project (e.g., "Psychology Bot Swarm")</li>
+                    <li>Select "Gemini API" from the dropdown</li>
+                    <li>Click "Create Key"</li>
+                    <li>Copy the generated API key</li>
+                    <li>Paste it in the "Gemini API Key" field in Settings</li>
+                    <li>Click "Save Key" to encrypt and store locally</li>
+                </ol>
+            </div>
+
+            <div style="background: #fff3e0; padding: 10px; border-left: 4px solid #ff9800; margin-bottom: 16px; border-radius: 4px;">
+                <strong>⚠️ SECURITY NOTE:</strong> Never share your API key. It's encrypted and stored locally on your device only.
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">🎯 GETTING STARTED</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Set your Gemini API key in Settings (see above)</li>
+                    <li>Create bot personas with distinct personalities</li>
+                    <li>Form groups by combining personas</li>
+                    <li>Chat with multiple personas simultaneously</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">🎭 PERSONAS</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Each persona has unique system prompt and traits</li>
+                    <li>Customize how they think, respond, and communicate</li>
+                    <li>Edit or delete personas anytime</li>
+                    <li>Click ✎ to edit, ✕ to delete</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">💬 GROUPS</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Combine multiple personas in one conversation</li>
+                    <li>All personas respond to your messages</li>
+                    <li>Messages persist and personas remember context</li>
+                    <li>Organize your conversations by topic or scenario</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">🎓 MENTOR BOT</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Click "💡 Coach Me" button after any bot response</li>
+                    <li>Or open Mentor modal and ask coaching questions</li>
+                    <li>Get strategic guidance + response templates</li>
+                    <li>Persona-aware coaching tailored to the bot</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">💾 DATA & PRIVACY</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>All data (personas, groups, messages) stored locally</li>
+                    <li>API key is Base64 encrypted for security</li>
+                    <li>Export your data anytime as JSON backup</li>
+                    <li>Clear all data with one click (Settings → Clear All Data)</li>
+                </ul>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <strong style="font-size: 14px;">🚀 ADVANCED TIPS</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Use personas for different perspectives in meetings</li>
+                    <li>Mentor helps improve communication skills</li>
+                    <li>Create groups for: sales scenarios, interviews, decisions</li>
+                    <li>Edit persona prompts to fine-tune behavior</li>
+                    <li>Export conversations for record-keeping</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="closeModal('userGuideModal')">Close</button>
         </div>
     </div>
 </div>
@@ -1406,62 +1551,9 @@
     import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
     window.GoogleGenerativeAI = GoogleGenerativeAI;
 
-    // ==================== STORAGE UTILITIES ====================
-    const Storage = {
-        getPersonas() {
-            return JSON.parse(localStorage.getItem('psychology_personas') || '[]');
-        },
-        savePersonas(personas) {
-            localStorage.setItem('psychology_personas', JSON.stringify(personas));
-        },
-        getGroups() {
-            return JSON.parse(localStorage.getItem('psychology_groups') || '[]');
-        },
-        saveGroups(groups) {
-            localStorage.setItem('psychology_groups', JSON.stringify(groups));
-        },
-        getGroupMessages(groupId) {
-            return JSON.parse(localStorage.getItem(`psychology_group_${groupId}`) || '[]');
-        },
-        saveGroupMessages(groupId, messages) {
-            localStorage.setItem(`psychology_group_${groupId}`, JSON.stringify(messages));
-        },
-        getApiKey() {
-            const saved = localStorage.getItem('psychology_api_key');
-            if (!saved) return '';
-            try {
-                return atob(saved);
-            } catch {
-                return '';
-            }
-        },
-        saveApiKey(key) {
-            localStorage.setItem('psychology_api_key', btoa(key));
-        },
-        getPersonaHistory(groupId, personaId) {
-            return JSON.parse(localStorage.getItem(`psychology_history_${groupId}_${personaId}`) || '[]');
-        },
-        savePersonaHistory(groupId, personaId, history) {
-            localStorage.setItem(`psychology_history_${groupId}_${personaId}`, JSON.stringify(history));
-        },
-        getTraitDefinitions() {
-            return JSON.parse(localStorage.getItem('psychology_trait_definitions') || JSON.stringify([
-                { id: 'optimism', label: 'Optimism', enabled: true },
-                { id: 'directness', label: 'Directness', enabled: true },
-                { id: 'empathy', label: 'Empathy', enabled: true },
-                { id: 'skepticism', label: 'Skepticism', enabled: true },
-                { id: 'assertiveness', label: 'Assertiveness', enabled: true },
-                { id: 'creativity', label: 'Creativity', enabled: false },
-                { id: 'patience', label: 'Patience', enabled: false },
-                { id: 'humor', label: 'Humor', enabled: false },
-                { id: 'formality', label: 'Formality', enabled: false },
-                { id: 'confidence', label: 'Confidence', enabled: false }
-            ]));
-        },
-        saveTraitDefinitions(traits) {
-            localStorage.setItem('psychology_trait_definitions', JSON.stringify(traits));
-        }
-    };
+    // ==================== STORAGE MODULE ====================
+    // Using psychologyBot.StorageModule loaded from modules/storage.js
+    // See ARCHITECTURE.md for API documentation
 
     // ==================== GLOBAL STATE ====================
     let currentGroup = null;
@@ -1485,7 +1577,7 @@ Format responses with clear sections:
 
     // ==================== UI INITIALIZATION ====================
     window.onload = async () => {
-        const savedKey = Storage.getApiKey();
+        const savedKey = psychologyBot.StorageModule.getApiKey();
         if (savedKey) document.getElementById('apiKey').value = savedKey;
         
         setupSidebarButtons();
@@ -1544,7 +1636,7 @@ Format responses with clear sections:
     // ==================== PERSONA MANAGEMENT ====================
     window.openCreatePersonaModal = () => {
         // Populate trait sliders in create modal
-        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
         const traitContainer = document.getElementById('createTraitSlidersContainer');
         if (traitContainer) {
             traitContainer.innerHTML = '';
@@ -1576,56 +1668,53 @@ Format responses with clear sections:
         if (!name || !prompt) return alert('Please fill in all fields');
 
         // Create trait values object
-        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
         const traitValues = {};
         traitDefinitions.forEach(trait => {
             const slider = document.getElementById(`create-trait-${trait.id}`);
             if (slider) traitValues[trait.id] = parseInt(slider.value);
         });
 
-        const personas = Storage.getPersonas();
-        const newPersona = {
-            id: 'persona_' + Date.now(),
-            name,
-            avatar,
-            systemPrompt: prompt,
-            tags,
-            traitValues,
-            createdAt: new Date().toISOString()
-        };
+        try {
+            const newPersona = psychologyBot.PersonaManager.createPersona({
+                name,
+                avatar,
+                systemPrompt: prompt,
+                tags,
+                traitValues
+            });
 
-        personas.push(newPersona);
-        Storage.savePersonas(personas);
+            document.getElementById('personaName').value = '';
+            document.getElementById('personaAvatar').value = '';
+            document.getElementById('personaPrompt').value = '';
+            document.getElementById('personaTraits').value = '';
 
-        document.getElementById('personaName').value = '';
-        document.getElementById('personaAvatar').value = '';
-        document.getElementById('personaPrompt').value = '';
-        document.getElementById('personaTraits').value = '';
-
-        closeModal('createPersonaModal');
-        updatePersonasList();
+            closeModal('createPersonaModal');
+            updatePersonasList();
+            alert(`✅ Created: ${newPersona.name}`);
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+        }
     };
 
     window.deletePersona = (personaId) => {
         if (!confirm('Delete this persona? This will remove it from all groups.')) return;
         
-        let personas = Storage.getPersonas();
-        personas = personas.filter(p => p.id !== personaId);
-        Storage.savePersonas(personas);
-
-        let groups = Storage.getGroups();
-        groups = groups.map(g => ({
-            ...g,
-            personaIds: g.personaIds.filter(pid => pid !== personaId)
-        }));
-        Storage.saveGroups(groups);
-
-        updatePersonasList();
-        updateGroupsList();
+        try {
+            const deleted = psychologyBot.PersonaManager.deletePersona(personaId);
+            
+            if (deleted) {
+                updatePersonasList();
+                updateGroupsList();
+                alert('✅ Persona deleted');
+            }
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+        }
     };
 
     function updatePersonasList() {
-        const personas = Storage.getPersonas();
+        const personas = psychologyBot.StorageModule.getPersonas();
         const list = document.getElementById('personasList');
         list.innerHTML = '';
 
@@ -1651,7 +1740,7 @@ Format responses with clear sections:
     }
 
     function updatePersonasCheckList() {
-        const personas = Storage.getPersonas();
+        const personas = psychologyBot.StorageModule.getPersonas();
         const container = document.getElementById('personasCheckList');
         container.innerHTML = '';
 
@@ -1681,47 +1770,46 @@ Format responses with clear sections:
 
         if (!name || selectedPersonas.length === 0) return alert('Enter group name and select at least one persona');
 
-        const groups = Storage.getGroups();
-        const newGroup = {
-            id: 'group_' + Date.now(),
-            name,
-            personaIds: selectedPersonas,
-            createdAt: new Date().toISOString(),
-            lastMessage: null,
-            lastMessageTime: null
-        };
+        try {
+            const newGroup = psychologyBot.GroupManager.createGroup({
+                name,
+                personaIds: selectedPersonas
+            });
 
-        groups.push(newGroup);
-        Storage.saveGroups(groups);
+            document.getElementById('groupName').value = '';
+            document.querySelectorAll('.persona-checkbox').forEach(cb => cb.checked = false);
 
-        document.getElementById('groupName').value = '';
-        document.querySelectorAll('.persona-checkbox').forEach(cb => cb.checked = false);
-
-        closeModal('createGroupModal');
-        updateGroupsList();
-        selectGroup(newGroup.id);
+            closeModal('createGroupModal');
+            updateGroupsList();
+            selectGroup(newGroup.id);
+            alert(`✅ Created: ${newGroup.name}`);
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
+        }
     };
 
     window.deleteGroup = (groupId) => {
         if (!confirm('Delete this group? All messages will be lost.')) return;
         
-        let groups = Storage.getGroups();
-        groups = groups.filter(g => g.id !== groupId);
-        Storage.saveGroups(groups);
-
-        localStorage.removeItem(`psychology_group_${groupId}`);
-        Storage.getGroups()[0]?.id && selectGroup(Storage.getGroups()[0].id);
-
-        updateGroupsList();
-        if (currentGroup?.id === groupId) {
-            currentGroup = null;
-            document.getElementById('chatWindow').innerHTML = '';
-            document.getElementById('inputArea').style.display = 'none';
+        try {
+            const deleted = psychologyBot.GroupManager.deleteGroup(groupId);
+            
+            if (deleted) {
+                updateGroupsList();
+                if (currentGroup?.id === groupId) {
+                    currentGroup = null;
+                    document.getElementById('chatWindow').innerHTML = '';
+                    document.getElementById('inputArea').style.display = 'none';
+                }
+                alert('✅ Group deleted');
+            }
+        } catch (e) {
+            alert(`❌ Error: ${e.message}`);
         }
     };
 
     function updateGroupsList() {
-        const groups = Storage.getGroups();
+        const groups = psychologyBot.StorageModule.getGroups();
         const list = document.getElementById('groupsList');
         list.innerHTML = '';
 
@@ -1729,7 +1817,7 @@ Format responses with clear sections:
             const div = document.createElement('div');
             div.className = `group-item ${currentGroup?.id === group.id ? 'active' : ''}`;
             
-            const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+            const personas = psychologyBot.StorageModule.getPersonas().filter(p => group.personaIds.includes(p.id));
             const avatars = personas.map(p => p.avatar).join('');
 
             div.innerHTML = `
@@ -1747,7 +1835,7 @@ Format responses with clear sections:
     }
 
     window.selectGroup = (groupId) => {
-        const groups = Storage.getGroups();
+        const groups = psychologyBot.StorageModule.getGroups();
         currentGroup = groups.find(g => g.id === groupId);
 
         updateGroupsList();
@@ -1756,12 +1844,12 @@ Format responses with clear sections:
     };
 
     function loadGroupChat(groupId) {
-        const messages = Storage.getGroupMessages(groupId);
+        const messages = psychologyBot.StorageModule.getGroupMessages(groupId);
         const chatWindow = document.getElementById('chatWindow');
         chatWindow.innerHTML = '';
 
-        const group = Storage.getGroups().find(g => g.id === groupId);
-        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+        const group = psychologyBot.StorageModule.getGroups().find(g => g.id === groupId);
+        const personas = psychologyBot.StorageModule.getPersonas().filter(p => group.personaIds.includes(p.id));
 
         document.getElementById('chatTitle').textContent = group.name;
         document.getElementById('chatSubtitle').textContent = `${personas.map(p => p.avatar + ' ' + p.name).join(' • ')}`;
@@ -1778,8 +1866,8 @@ Format responses with clear sections:
     }
     
     function updateResponderSelector(groupId) {
-        const group = Storage.getGroups().find(g => g.id === groupId);
-        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
+        const group = psychologyBot.StorageModule.getGroups().find(g => g.id === groupId);
+        const personas = psychologyBot.StorageModule.getPersonas().filter(p => group.personaIds.includes(p.id));
         const container = document.getElementById('responderSelectorContainer');
         const passBtn = document.getElementById('passBtn');
         
@@ -1841,33 +1929,61 @@ Format responses with clear sections:
         if (passBtn) passBtn.style.display = 'flex';
     }
     
-    async function getResponderResponse() {
-        if (!currentGroup) return;
+    window.getResponderResponse = async function() {
+        console.log('Pass button clicked. currentGroup:', currentGroup?.id, 'nextResponderIndex:', nextResponderIndex);
         
-        const group = Storage.getGroups().find(g => g.id === currentGroup.id);
-        const personas = Storage.getPersonas().filter(p => group.personaIds.includes(p.id));
-        const persona = personas[nextResponderIndex];
-        
-        if (!persona) return;
-        
-        // Get the last user message
-        const messages = Storage.getGroupMessages(currentGroup.id);
-        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-        
-        if (!lastUserMsg) {
-            alert('No user message to respond to');
+        if (!currentGroup) {
+            alert('No group selected');
             return;
         }
         
-        const apiKey = Storage.getApiKey();
-        if (!apiKey) return alert('Please set your API key in settings');
+        const group = psychologyBot.StorageModule.getGroups().find(g => g.id === currentGroup.id);
+        if (!group) {
+            alert('Group not found');
+            return;
+        }
         
+        const personas = psychologyBot.StorageModule.getPersonas().filter(p => group.personaIds.includes(p.id));
+        console.log('Found personas:', personas.length, 'at index:', nextResponderIndex);
+        
+        if (personas.length === 0) {
+            alert('No personas in this group');
+            return;
+        }
+        
+        const persona = personas[nextResponderIndex % personas.length];
+        console.log('Selected persona:', persona?.name);
+        
+        if (!persona) {
+            alert('No persona found at index');
+            return;
+        }
+        
+        // Get the last user message
+        const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
+        const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+        console.log('Last user message:', lastUserMsg?.text?.substring(0, 50));
+        
+        if (!lastUserMsg) {
+            alert('No user message to respond to. Please type a message first.');
+            return;
+        }
+        
+        const apiKey = psychologyBot.StorageModule.getApiKey();
+        if (!apiKey) {
+            alert('Please set your API key in Settings first');
+            return;
+        }
+        
+        console.log('Getting response from:', persona.name);
+        // Get response from the selected persona
         await getPersonaResponse(persona, lastUserMsg.text, apiKey);
         
-        // Move to next persona
+        // Move to next persona for next turn
         nextResponderIndex = (nextResponderIndex + 1) % personas.length;
+        console.log('Updated nextResponderIndex to:', nextResponderIndex);
         updateResponderSelector(currentGroup.id);
-    }
+    };
 
     // ==================== CHAT & MESSAGING ====================
     function displayMessage(msg, isNew = false) {
@@ -1875,7 +1991,7 @@ Format responses with clear sections:
         const div = document.createElement('div');
         div.className = `message-group ${msg.role}`;
 
-        const personas = Storage.getPersonas();
+        const personas = psychologyBot.StorageModule.getPersonas();
         const senderPersona = msg.senderPersonaId ? personas.find(p => p.id === msg.senderPersonaId) : null;
 
         if (msg.role === 'model' && senderPersona) {
@@ -1917,14 +2033,14 @@ Format responses with clear sections:
 
         // Add user message
         const userMsg = { role: 'user', text, senderPersonaId: null, timestamp: new Date().toISOString() };
-        const messages = Storage.getGroupMessages(currentGroup.id);
+        const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
         messages.push(userMsg);
-        Storage.saveGroupMessages(currentGroup.id, messages);
+        psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
         displayMessage(userMsg);
 
         // Check for @mentions in the text
         const mentionMatch = text.match(/@(\w+)/g);
-        const allPersonas = Storage.getPersonas().filter(p => currentGroup.personaIds.includes(p.id));
+        const allPersonas = psychologyBot.StorageModule.getPersonas().filter(p => currentGroup.personaIds.includes(p.id));
         
         if (mentionMatch) {
             // If message has @mentions, get responses from mentioned personas
@@ -1940,20 +2056,41 @@ Format responses with clear sections:
                     timestamp: new Date().toISOString()
                 };
                 messages.push(msg);
-                Storage.saveGroupMessages(currentGroup.id, messages);
+                psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
                 displayMessage(msg, true);
                 return;
             }
             
-            const apiKey = Storage.getApiKey();
+            const apiKey = psychologyBot.StorageModule.getApiKey();
             if (!apiKey) return alert('Please set your API key in settings');
             
             for (const persona of targetPersonas) {
                 await getPersonaResponse(persona, text, apiKey);
             }
         } else {
-            // No @mentions - prompt user to select responder via Pass button
-            nextResponderIndex = 0;
+            // No @mentions - automatically get response from current responder (turn-based)
+            if (allPersonas.length === 0) {
+                const msg = {
+                    role: 'model',
+                    text: '❌ No personas in this group. Add personas to get responses.',
+                    senderPersonaId: null,
+                    timestamp: new Date().toISOString()
+                };
+                messages.push(msg);
+                psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
+                displayMessage(msg, true);
+                return;
+            }
+            
+            const apiKey = psychologyBot.StorageModule.getApiKey();
+            if (!apiKey) return alert('Please set your API key in settings');
+            
+            // Get response from current responder
+            const currentPersona = allPersonas[nextResponderIndex % allPersonas.length];
+            await getPersonaResponse(currentPersona, text, apiKey);
+            
+            // Move to next persona for next turn
+            nextResponderIndex = (nextResponderIndex + 1) % allPersonas.length;
             updateResponderSelector(currentGroup.id);
         }
 
@@ -1962,13 +2099,13 @@ Format responses with clear sections:
 
     async function getPersonaResponse(persona, userMessage, apiKey) {
         try {
-            const history = Storage.getPersonaHistory(currentGroup.id, persona.id);
+            const history = psychologyBot.StorageModule.getPersonaHistory(currentGroup.id, persona.id);
             const genAI = new window.GoogleGenerativeAI(apiKey);
             
             // Build trait context string if trait values exist
             let enhancedSystemPrompt = persona.systemPrompt;
             if (persona.traitValues && Object.keys(persona.traitValues).length > 0) {
-                const traitDefinitions = Storage.getTraitDefinitions();
+                const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
                 const traitDescriptions = traitDefinitions
                     .filter(t => persona.traitValues[t.id] !== undefined)
                     .map(t => `${t.label}: ${persona.traitValues[t.id]}`)
@@ -1992,7 +2129,7 @@ Format responses with clear sections:
             let updatedHistory = [...history];
             updatedHistory.push({ role: 'user', parts: [{ text: userMessage }] });
             updatedHistory.push({ role: 'model', parts: [{ text: responseText }] });
-            Storage.savePersonaHistory(currentGroup.id, persona.id, updatedHistory);
+            psychologyBot.StorageModule.savePersonaHistory(currentGroup.id, persona.id, updatedHistory);
 
             // Add to group messages
             const modelMsg = {
@@ -2001,20 +2138,20 @@ Format responses with clear sections:
                 senderPersonaId: persona.id,
                 timestamp: new Date().toISOString()
             };
-            const messages = Storage.getGroupMessages(currentGroup.id);
+            const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
             messages.push(modelMsg);
-            Storage.saveGroupMessages(currentGroup.id, messages);
+            psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
 
             displayMessage(modelMsg, true);
 
             // Update group's last message
-            let groups = Storage.getGroups();
+            let groups = psychologyBot.StorageModule.getGroups();
             groups = groups.map(g => 
                 g.id === currentGroup.id 
                     ? { ...g, lastMessage: responseText.substring(0, 50) + '...', lastMessageTime: new Date().toISOString() }
                     : g
             );
-            Storage.saveGroups(groups);
+            psychologyBot.StorageModule.saveGroups(groups);
             updateGroupsList();
 
         } catch (e) {
@@ -2024,16 +2161,16 @@ Format responses with clear sections:
                 senderPersonaId: persona.id,
                 timestamp: new Date().toISOString()
             };
-            const messages = Storage.getGroupMessages(currentGroup.id);
+            const messages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id);
             messages.push(errorMsg);
-            Storage.saveGroupMessages(currentGroup.id, messages);
+            psychologyBot.StorageModule.saveGroupMessages(currentGroup.id, messages);
             displayMessage(errorMsg, true);
         }
     }
 
     // ==================== MENTOR BOT ====================
     async function getMentorAdvice(responseText, persona) {
-        if (!Storage.getApiKey()) return alert('API key not set');
+        if (!psychologyBot.StorageModule.getApiKey()) return alert('API key not set');
         openModal('mentorModal');
         
         document.getElementById('mentorQuestion').value = `How can I improve on this response from ${persona.name}?\n\n"${responseText.substring(0, 100)}..."`;
@@ -2043,7 +2180,7 @@ Format responses with clear sections:
         const question = document.getElementById('mentorQuestion').value.trim();
         if (!question) return alert('Please ask a question');
 
-        const apiKey = Storage.getApiKey();
+        const apiKey = psychologyBot.StorageModule.getApiKey();
         if (!apiKey) return alert('API key not set');
 
         const responseDiv = document.getElementById('mentorResponse');
@@ -2057,9 +2194,9 @@ Format responses with clear sections:
                 systemInstruction: mentorSystemPrompt
             });
 
-            const recentMessages = Storage.getGroupMessages(currentGroup.id).slice(-6);
+            const recentMessages = psychologyBot.StorageModule.getGroupMessages(currentGroup.id).slice(-6);
             const context = `Recent Conversation:\n${recentMessages.map(m => 
-                `${m.senderPersonaId ? '🤖 ' + (Storage.getPersonas().find(p => p.id === m.senderPersonaId)?.name || 'Unknown') : '👤 You'}: ${m.text.substring(0, 80)}...`
+                `${m.senderPersonaId ? '🤖 ' + (psychologyBot.StorageModule.getPersonas().find(p => p.id === m.senderPersonaId)?.name || 'Unknown') : '👤 You'}: ${m.text.substring(0, 80)}...`
             ).join('\n')}\n\nCoach Question: ${question}`;
 
             const result = await model.generateContent(context);
@@ -2077,7 +2214,7 @@ Format responses with clear sections:
     window.saveApiKey = () => {
         const key = document.getElementById('apiKey').value.trim();
         if (!key) return alert('Please enter an API key');
-        Storage.saveApiKey(key);
+        psychologyBot.StorageModule.saveApiKey(key);
         alert('✅ API key saved and encrypted');
     };
 
@@ -2087,7 +2224,7 @@ Format responses with clear sections:
     };
 
     function renderTraitsList() {
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
         const listContainer = document.getElementById('traitsList');
         listContainer.innerHTML = '';
 
@@ -2106,34 +2243,38 @@ Format responses with clear sections:
     }
 
     window.toggleTraitEnabled = (index) => {
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
         if (traits[index]) {
             traits[index].enabled = !traits[index].enabled;
+            psychologyBot.StorageModule.saveTraitDefinitions(traits);
             renderTraitsList();
         }
     };
 
     window.updateTraitName = (index) => {
         const newName = document.getElementById(`trait-name-${index}`)?.value.trim();
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
         if (traits[index] && newName) {
             traits[index].label = newName;
+            psychologyBot.StorageModule.saveTraitDefinitions(traits);
         }
     };
 
     window.deleteTrait = (index) => {
         if (!confirm('Delete this trait? Persona trait values for this will be lost.')) return;
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
+        const traitIdToDelete = traits[index]?.id;
         traits.splice(index, 1);
         
         // Update all personas to remove this trait from their traitValues
-        const personas = Storage.getPersonas();
+        const personas = psychologyBot.StorageModule.getPersonas();
         personas.forEach(persona => {
-            if (persona.traitValues) {
-                delete persona.traitValues[traits[index]?.id];
+            if (persona.traitValues && traitIdToDelete) {
+                delete persona.traitValues[traitIdToDelete];
             }
         });
-        Storage.savePersonas(personas);
+        psychologyBot.StorageModule.savePersonas(personas);
+        psychologyBot.StorageModule.saveTraitDefinitions(traits);
         
         renderTraitsList();
     };
@@ -2144,7 +2285,7 @@ Format responses with clear sections:
         
         if (!name) return alert('Please enter a trait name');
         
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
         
         // Generate ID from name (lowercase, spaces to underscores)
         const id = name.toLowerCase().replace(/\s+/g, '_');
@@ -2160,14 +2301,14 @@ Format responses with clear sections:
             enabled: true
         });
         
-        Storage.saveTraitDefinitions(traits);
+        psychologyBot.StorageModule.saveTraitDefinitions(traits);
         nameInput.value = '';
         renderTraitsList();
         alert(`✅ Trait "${name}" added and enabled!`);
     };
 
     window.saveTraitChanges = () => {
-        const traits = Storage.getTraitDefinitions();
+        const traits = psychologyBot.StorageModule.getTraitDefinitions();
         
         // Update all trait names from input fields
         traits.forEach((trait, index) => {
@@ -2177,7 +2318,7 @@ Format responses with clear sections:
             }
         });
         
-        Storage.saveTraitDefinitions(traits);
+        psychologyBot.StorageModule.saveTraitDefinitions(traits);
         
         // Refresh all modals that use trait sliders
         updateResponderSelector(currentGroup?.id);
@@ -2188,64 +2329,13 @@ Format responses with clear sections:
 
     window.showUserGuide = () => {
         switchSidebarSection('settings');
-        alert(`📖 PSYCHOLOGY BOT SWARM - USER GUIDE
-
-🔑 HOW TO GET YOUR GEMINI API KEY
-1. Go to: https://aistudio.google.com/app/api-keys
-2. Click the blue "Get API key" button
-3. Select "Create API key in new project"
-4. Name your project (e.g., "Psychology Bot Swarm")
-5. Select "Gemini API" from the dropdown
-6. Click "Create Key"
-7. Copy the generated API key
-8. Paste it in the "Gemini API Key" field in Settings
-9. Click "Save Key" to encrypt and store locally
-
-⚠️ SECURITY NOTE: Never share your API key. It's encrypted and stored locally on your device only.
-
-🎯 GETTING STARTED
-1. Set your Gemini API key in Settings (see above)
-2. Create bot personas with distinct personalities
-3. Form groups by combining personas
-4. Chat with multiple personas simultaneously
-
-🎭 PERSONAS
-- Each persona has unique system prompt and traits
-- Customize how they think, respond, and communicate
-- Edit or delete personas anytime
-- Click ✎ to edit, ✕ to delete
-
-💬 GROUPS
-- Combine multiple personas in one conversation
-- All personas respond to your messages
-- Messages persist and personas remember context
-- Organize your conversations by topic or scenario
-
-🎓 MENTOR BOT
-- Click "💡 Coach Me" button after any bot response
-- Or open Mentor modal and ask coaching questions
-- Get strategic guidance + response templates
-- Persona-aware coaching tailored to the bot
-
-💾 DATA & PRIVACY
-- All data (personas, groups, messages) stored locally
-- API key is Base64 encrypted for security
-- Export your data anytime as JSON backup
-- Clear all data with one click (Settings → Clear All Data)
-
-🚀 ADVANCED TIPS
-- Use personas for different perspectives in meetings
-- Mentor helps improve communication skills
-- Create groups for: sales scenarios, interviews, decisions
-- Edit persona prompts to fine-tune behavior
-- Export conversations for record-keeping
-`);
+        openModal('userGuideModal');
     };
 
     window.exportData = () => {
         const data = {
-            personas: Storage.getPersonas(),
-            groups: Storage.getGroups(),
+            personas: psychologyBot.StorageModule.getPersonas(),
+            groups: psychologyBot.StorageModule.getGroups(),
             exportDate: new Date().toISOString()
         };
         const json = JSON.stringify(data, null, 2);
@@ -2283,7 +2373,7 @@ Format responses with clear sections:
 
     // ==================== PERSONA EDITING ====================
     window.editPersona = (personaId) => {
-        const personas = Storage.getPersonas();
+        const personas = psychologyBot.StorageModule.getPersonas();
         const persona = personas.find(p => p.id === personaId);
         
         if (!persona) return alert('Persona not found');
@@ -2296,7 +2386,7 @@ Format responses with clear sections:
         document.getElementById('editPersonaTraits').value = persona.tags ? persona.tags.join(', ') : (persona.traits ? persona.traits.join(', ') : '');
         
         // Populate trait sliders
-        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
         const traitContainer = document.getElementById('editTraitSlidersContainer');
         if (traitContainer) {
             traitContainer.innerHTML = '';
@@ -2329,7 +2419,7 @@ Format responses with clear sections:
         const traits = document.getElementById('editPersonaTraits').value.split(',').map(t => t.trim()).filter(t => t);
         
         // Capture trait slider values
-        const traitDefinitions = Storage.getTraitDefinitions();
+        const traitDefinitions = psychologyBot.StorageModule.getTraitDefinitions();
         const traitValues = {};
         traitDefinitions.forEach(trait => {
             const slider = document.getElementById(`edit-trait-${trait.id}`);
@@ -2340,14 +2430,14 @@ Format responses with clear sections:
         
         if (!name || !prompt) return alert('Please fill in all required fields');
         
-        let personas = Storage.getPersonas();
+        let personas = psychologyBot.StorageModule.getPersonas();
         personas = personas.map(p => 
             p.id === personaId 
                 ? { ...p, name, avatar, systemPrompt: prompt, tags: traits, traitValues }
                 : p
         );
         
-        Storage.savePersonas(personas);
+        psychologyBot.StorageModule.savePersonas(personas);
         closeModal('editPersonaModal');
         updatePersonasList();
         

@@ -59,7 +59,7 @@ window.TestFramework.describe = function(suiteName, testFn) {
         }
     };
     
-    testFn(context);
+    testFn(context.it);
     window.TestFramework.results.suites.push(suite);
 };
 
